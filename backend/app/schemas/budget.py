@@ -1,5 +1,6 @@
 """予算スキーマ"""
 from datetime import datetime, date
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -19,9 +20,9 @@ class BudgetCreate(BudgetBase):
 
 class BudgetUpdate(BaseModel):
     """予算更新スキーマ"""
-    category_id: UUID | None = None
-    amount: int | None = Field(None, gt=0)
-    month: date | None = None
+    category_id: Optional[UUID] = None
+    amount: Optional[int] = Field(None, gt=0)
+    month: Optional[date] = None
 
 
 class BudgetResponse(BudgetBase):

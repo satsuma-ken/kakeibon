@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.api.endpoints import auth, categories, transactions, budgets
 
 # FastAPIアプリケーションの作成
 app = FastAPI(
@@ -19,6 +20,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ルーター登録
+app.include_router(auth.router, prefix="/api/auth", tags=["認証"])
+app.include_router(categories.router, prefix="/api/categories", tags=["カテゴリ"])
+app.include_router(transactions.router, prefix="/api/transactions", tags=["取引"])
+app.include_router(budgets.router, prefix="/api/budgets", tags=["予算"])
 
 
 @app.get("/")

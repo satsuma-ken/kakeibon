@@ -1,5 +1,6 @@
 """カテゴリスキーマ"""
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -21,15 +22,9 @@ class CategoryCreate(CategoryBase):
 
 class CategoryUpdate(BaseModel):
     """カテゴリ更新スキーマ"""
-<<<<<<< HEAD
-    name: str | None = Field(None, min_length=1, max_length=100)
-    type: TransactionType | None = None
-    color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
-=======
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     type: Optional[TransactionType] = None
     color: Optional[str] = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
->>>>>>> 10ffca3 (DBマイグレーションおよびサーバーホスト実装)
 
 
 class CategoryResponse(CategoryBase):

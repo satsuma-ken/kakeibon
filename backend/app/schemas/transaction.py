@@ -1,5 +1,6 @@
 """取引スキーマ"""
 from datetime import datetime, date
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -13,7 +14,7 @@ class TransactionBase(BaseModel):
     amount: int = Field(..., gt=0)
     type: TransactionType
     date: date
-    memo: str | None = None
+    memo: Optional[str] = None
 
 
 class TransactionCreate(TransactionBase):
@@ -23,11 +24,11 @@ class TransactionCreate(TransactionBase):
 
 class TransactionUpdate(BaseModel):
     """取引更新スキーマ"""
-    category_id: UUID | None = None
-    amount: int | None = Field(None, gt=0)
-    type: TransactionType | None = None
-    date: date | None = None
-    memo: str | None = None
+    category_id: Optional[UUID] = None
+    amount: Optional[int] = Field(None, gt=0)
+    type: Optional[TransactionType] = None
+    date: Optional[date] = None
+    memo: Optional[str] = None
 
 
 class TransactionResponse(TransactionBase):
