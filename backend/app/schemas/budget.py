@@ -1,0 +1,33 @@
+"""予算スキーマ"""
+from datetime import datetime, date
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+
+class BudgetBase(BaseModel):
+    """予算ベーススキーマ"""
+    category_id: UUID
+    amount: int = Field(..., gt=0)
+    month: date
+
+
+class BudgetCreate(BudgetBase):
+    """予算作成スキーマ"""
+    pass
+
+
+class BudgetUpdate(BaseModel):
+    """予算更新スキーマ"""
+    category_id: UUID | None = None
+    amount: int | None = Field(None, gt=0)
+    month: date | None = None
+
+
+class BudgetResponse(BudgetBase):
+    """予算レスポンススキーマ"""
+    budget_id: UUID
+    user_id: UUID
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

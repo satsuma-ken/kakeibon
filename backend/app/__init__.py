@@ -1,0 +1,1 @@
+"""Kakeibon API Application"""
