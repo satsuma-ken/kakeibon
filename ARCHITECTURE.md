@@ -2,7 +2,7 @@
 
 ## Docker構成図
 
-### 全体構成
+### 全体構成（3層アーキテクチャ）
 
 ```mermaid
 graph TB
@@ -16,10 +16,13 @@ graph TB
         InitScripts["./db/init/<br/>初期化スクリプト"]
     end
 
-    Browser["Web Browser<br/>localhost:8000"]
+    Browser["Web Browser<br/>localhost:5173"]
     DBClient["Database Client<br/>localhost:5432"]
 
     Browser -->|HTTP| DevContainer
+    Browser -.->|View| Vite["Vite Dev Server<br/>:5173<br/>(Frontend)"]
+    Vite -->|API Request| FastAPI["FastAPI<br/>:8000<br/>(Backend)"]
+    FastAPI -->|In Container| DevContainer
     DBClient -->|PostgreSQL Protocol| PostgreSQL
     DevContainer -->|SQL Query| PostgreSQL
     PostgreSQL -->|永続化| Volume
@@ -30,6 +33,51 @@ graph TB
     style Volume fill:#FFA500,color:#fff
     style Browser fill:#61DAFB,color:#000
     style DBClient fill:#90EE90,color:#000
+    style Vite fill:#646CFF,color:#fff
+    style FastAPI fill:#009688,color:#fff
+```
+
+### 3層構成の詳細
+
+```mermaid
+graph TB
+    subgraph "プレゼンテーション層"
+        Browser["Webブラウザ"]
+        subgraph "React Frontend :5173"
+            Pages["Pages<br/>Login, Dashboard,<br/>Transactions, etc."]
+            Components["Components<br/>Layout, PrivateRoute"]
+            Context["Context<br/>AuthContext"]
+            Services["Services<br/>API Client (Axios)"]
+        end
+    end
+
+    subgraph "アプリケーション層"
+        subgraph "FastAPI Backend :8000"
+            API["API Endpoints<br/>/auth, /categories,<br/>/transactions, /budgets"]
+            Security["Security<br/>JWT, bcrypt"]
+            Schemas["Pydantic Schemas"]
+        end
+    end
+
+    subgraph "データ層"
+        subgraph "PostgreSQL :5432"
+            Tables["Tables<br/>users, categories,<br/>transactions, budgets"]
+        end
+    end
+
+    Browser --> Pages
+    Pages --> Components
+    Pages --> Context
+    Context --> Services
+    Services -->|HTTP/JSON| API
+    API --> Security
+    API --> Schemas
+    API -->|SQLAlchemy| Tables
+
+    style Browser fill:#61DAFB,color:#000
+    style Pages fill:#646CFF,color:#fff
+    style API fill:#009688,color:#fff
+    style Tables fill:#336791,color:#fff
 ```
 
 ### コンテナ詳細構成
@@ -72,24 +120,72 @@ graph LR
     style DB fill:#87CEEB,color:#000
 ```
 
-### ネットワーク通信フロー
+### ネットワーク通信フロー（フロントエンド含む）
 
 ```mermaid
 sequenceDiagram
     participant Browser
-    participant Uvicorn as Uvicorn<br/>(python-claude-dev)
+    participant Vite as Vite<br/>:5173
+    participant React as React App
+    participant Axios as Axios Client
+    participant Uvicorn as Uvicorn<br/>:8000
     participant FastAPI as FastAPI App
     participant SQLAlchemy as SQLAlchemy
     participant PostgreSQL as PostgreSQL<br/>(kakeibon-postgres)
 
-    Browser->>Uvicorn: HTTP Request<br/>localhost:8000/api/...
+    Browser->>Vite: HTTP Request<br/>localhost:5173
+    Vite-->>Browser: React App (HTML/JS/CSS)
+    Browser->>React: User Action<br/>(e.g., Login)
+    React->>Axios: API Call
+    Axios->>Uvicorn: HTTP Request<br/>localhost:8000/api/auth/login
     Uvicorn->>FastAPI: Route Request
     FastAPI->>SQLAlchemy: Query Data
     SQLAlchemy->>PostgreSQL: SQL Query<br/>kakeibon-postgres:5432
     PostgreSQL-->>SQLAlchemy: Result Set
     SQLAlchemy-->>FastAPI: ORM Objects
-    FastAPI-->>Uvicorn: JSON Response
-    Uvicorn-->>Browser: HTTP Response
+    FastAPI-->>Uvicorn: JSON Response<br/>(access_token, user)
+    Uvicorn-->>Axios: HTTP Response
+    Axios-->>React: Response Data
+    React-->>Browser: Update UI
+```
+
+### 認証フロー（JWT）
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant React
+    participant AuthContext
+    participant API
+    participant FastAPI
+    participant DB
+
+    Note over Browser,DB: ユーザー登録/ログイン
+    Browser->>React: ログインフォーム送信
+    React->>AuthContext: login(email, password)
+    AuthContext->>API: POST /api/auth/login
+    API->>FastAPI: HTTP Request
+    FastAPI->>DB: ユーザー検証
+    DB-->>FastAPI: User Record
+    FastAPI->>FastAPI: bcryptでパスワード検証
+    FastAPI->>FastAPI: JWTトークン生成
+    FastAPI-->>API: AuthResponse<br/>(access_token, user)
+    API->>AuthContext: トークン保存
+    AuthContext->>AuthContext: localStorage.setItem
+    AuthContext-->>React: 認証成功
+    React-->>Browser: ダッシュボードへリダイレクト
+
+    Note over Browser,DB: 認証が必要なAPI呼び出し
+    Browser->>React: データ取得要求
+    React->>API: GET /api/transactions
+    API->>API: Interceptor:<br/>Authorization Header追加
+    API->>FastAPI: HTTP Request<br/>Bearer {token}
+    FastAPI->>FastAPI: JWTトークン検証
+    FastAPI->>DB: データ取得
+    DB-->>FastAPI: Data
+    FastAPI-->>API: JSON Response
+    API-->>React: Data
+    React-->>Browser: UI更新
 ```
 
 ### データベースマイグレーションフロー
@@ -114,7 +210,8 @@ graph TD
 | サービス | コンテナ内ポート | ホスト公開ポート | 用途 |
 |---------|----------------|-----------------|------|
 | PostgreSQL | 5432 | 5432 | データベース接続 |
-| FastAPI/Uvicorn | 8000 | 8000 | API/Webサーバー |
+| FastAPI/Uvicorn | 8000 | 8000 | REST API サーバー |
+| Vite Dev Server | 5173 | 5173 | フロントエンド開発サーバー |
 
 ## ボリュームマウント
 
@@ -166,12 +263,21 @@ WSLホスト → PostgreSQL
   接続: ポートフォワーディング経由
 ```
 
-### ブラウザ → FastAPI
+### ブラウザ → アプリケーション
 
 ```
-ブラウザ → FastAPI
+ブラウザ → React Frontend
+  URL: http://localhost:5173
+  フロントエンドアプリケーション
+
+ブラウザ → FastAPI (Direct)
   URL: http://localhost:8000
   Swagger UI: http://localhost:8000/docs
+  ReDoc: http://localhost:8000/redoc
+
+React Frontend → FastAPI (API)
+  Base URL: http://localhost:8000/api
+  Endpoints: /auth, /categories, /transactions, /budgets
 ```
 
 ## セキュリティ考慮事項

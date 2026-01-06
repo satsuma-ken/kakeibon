@@ -143,25 +143,77 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - ReDoc: http://localhost:8000/redoc
 - ヘルスチェック: http://localhost:8000/health
 
+### 9. フロントエンドのセットアップ
+
+#### 依存関係のインストール
+
+```bash
+cd /usr/src/projects/kakeibon/frontend
+npm install
+```
+
+#### 環境変数の設定
+
+```bash
+# frontend/.envファイルを作成
+cp .env.example .env
+```
+
+`.env`ファイルの内容（必要に応じて変更）：
+
+```
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+#### フロントエンド開発サーバーの起動
+
+```bash
+cd /usr/src/projects/kakeibon/frontend
+npm run dev
+```
+
+アクセス確認：
+- フロントエンド: http://localhost:5173
+
+**注意**: フロントエンドを使用するには、バックエンドAPI（ポート8000）が起動している必要があります。
+
 ## 日常的な開発フロー
 
 ### サーバーの起動
 
-#### PostgreSQLの起動
+#### 1. PostgreSQLの起動
 
 ```bash
 cd /usr/src/projects/kakeibon/db
 docker-compose up -d
 ```
 
-#### FastAPIサーバーの起動
+#### 2. FastAPIサーバーの起動
 
 ```bash
 cd /usr/src/projects/kakeibon/backend
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+#### 3. フロントエンド開発サーバーの起動
+
+別のターミナルで実行：
+
+```bash
+cd /usr/src/projects/kakeibon/frontend
+npm run dev
+```
+
+これでフルスタックアプリケーションが起動します：
+- フロントエンド: http://localhost:5173
+- バックエンドAPI: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+
 ### サーバーの停止
+
+#### フロントエンド開発サーバーの停止
+
+`Ctrl + C`
 
 #### FastAPIサーバーの停止
 
