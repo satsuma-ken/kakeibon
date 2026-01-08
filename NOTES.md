@@ -48,57 +48,59 @@ BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:51
 - `allow_origins=["*"]`は絶対に使用しない
 - HTTPSを必須にする
 
-## Docker関連
+## データベース関連
 
-### 1. ネットワーク設定の重要性
-
-開発コンテナとPostgreSQLコンテナは**同じDockerネットワークに接続する必要があります**。
-
-```bash
-# 必須の設定コマンド
-docker network connect kakeibon-network python-claude-dev
-```
-
-この設定を忘れると、以下のエラーが発生します:
-```
-psycopg2.OperationalError: could not translate host name "kakeibon-postgres"
-```
-
-### 2. データベースURLの使い分け
+### 1. データベース接続設定
 
 環境によって適切なホスト名を使用してください：
 
 | 実行環境 | DATABASE_URL |
 |---------|-------------|
-| 開発コンテナ内 | `postgresql://postgres:password@kakeibon-postgres:5432/kakeibo` |
-| WSLホスト | `postgresql://postgres:password@localhost:5432/kakeibo` |
+| ローカル環境 | `postgresql://postgres:password@localhost:5432/kakeibon` |
+| WSL2コンテナ環境 | `postgresql://postgres:password@host.docker.internal:5432/kakeibon` |
 
-### 3. ボリューム永続化
+### 2. PostgreSQL起動方法
 
-PostgreSQLのデータは`postgres_data`ボリュームに永続化されています。
+PostgreSQLはローカルインストールまたはDockerで起動できます。
 
-⚠️ **注意**:
-- `docker-compose down`では**データは削除されません**
-- データを完全に削除する場合: `docker-compose down -v`
-
-### 4. コンテナの再起動
-
-開発環境を再起動する際の手順:
+#### Dockerで起動する場合
 
 ```bash
-# 1. PostgreSQLを起動
-cd /usr/src/projects/kakeibon/db
-docker-compose up -d
+docker run -d \
+  --name kakeibon-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=kakeibon \
+  -p 5432:5432 \
+  postgres:15
+```
 
-# 2. 開発コンテナがネットワークに接続されているか確認
-docker network inspect kakeibon-network
+データの永続化が必要な場合は、ボリュームをマウントしてください：
 
-# 3. 接続されていない場合は接続
-docker network connect kakeibon-network python-claude-dev
+```bash
+docker run -d \
+  --name kakeibon-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=kakeibon \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  postgres:15
+```
 
-# 4. FastAPIサーバーを起動
-cd /usr/src/projects/kakeibon/backend
+### 3. アプリケーション起動手順
+
+開発時は以下の順序でサービスを起動します：
+
+```bash
+# 1. PostgreSQLが起動していることを確認
+docker ps | grep postgres  # Dockerの場合
+
+# 2. バックエンドを起動（別ターミナル）
+cd backend
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 3. フロントエンドを起動（別ターミナル）
+cd frontend
+npm run dev
 ```
 
 ## データベース設計関連

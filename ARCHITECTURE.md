@@ -1,40 +1,35 @@
 # システムアーキテクチャ
 
-## Docker構成図
+## システム全体構成
 
 ### 全体構成（3層アーキテクチャ）
 
 ```mermaid
 graph TB
-    subgraph "WSL2 Host"
-        subgraph "Docker Network: kakeibon-network<br/>172.21.0.0/16"
-            PostgreSQL["PostgreSQL Container<br/>kakeibon-postgres<br/>172.21.0.2:5432"]
-            DevContainer["Development Container<br/>python-claude-dev<br/>172.21.0.3"]
+    subgraph "開発環境"
+        Browser["Web Browser"]
+
+        subgraph "フロントエンド層"
+            Vite["Vite Dev Server<br/>:5173<br/>(React)"]
         end
 
-        Volume["Docker Volume<br/>postgres_data"]
-        InitScripts["./db/init/<br/>初期化スクリプト"]
+        subgraph "アプリケーション層"
+            FastAPI["FastAPI<br/>:8000<br/>(Uvicorn)"]
+        end
+
+        subgraph "データ層"
+            PostgreSQL["PostgreSQL<br/>:5432"]
+        end
     end
 
-    Browser["Web Browser<br/>localhost:5173"]
-    DBClient["Database Client<br/>localhost:5432"]
-
-    Browser -->|HTTP| DevContainer
-    Browser -.->|View| Vite["Vite Dev Server<br/>:5173<br/>(Frontend)"]
-    Vite -->|API Request| FastAPI["FastAPI<br/>:8000<br/>(Backend)"]
-    FastAPI -->|In Container| DevContainer
-    DBClient -->|PostgreSQL Protocol| PostgreSQL
-    DevContainer -->|SQL Query| PostgreSQL
-    PostgreSQL -->|永続化| Volume
-    InitScripts -.->|初回起動時| PostgreSQL
+    Browser -->|http://localhost:5173| Vite
+    Vite -->|API: http://localhost:8000| FastAPI
+    FastAPI -->|SQL| PostgreSQL
 
     style PostgreSQL fill:#336791,color:#fff
-    style DevContainer fill:#4B8BBE,color:#fff
-    style Volume fill:#FFA500,color:#fff
-    style Browser fill:#61DAFB,color:#000
-    style DBClient fill:#90EE90,color:#000
-    style Vite fill:#646CFF,color:#fff
     style FastAPI fill:#009688,color:#fff
+    style Vite fill:#646CFF,color:#fff
+    style Browser fill:#61DAFB,color:#000
 ```
 
 ### 3層構成の詳細
@@ -80,71 +75,95 @@ graph TB
     style Tables fill:#336791,color:#fff
 ```
 
-### コンテナ詳細構成
+### アプリケーション構成詳細
+
+#### バックエンド構成
 
 ```mermaid
 graph LR
-    subgraph "python-claude-dev Container"
-        subgraph "FastAPI Application"
-            Main["main.py<br/>FastAPI App"]
-            API["api/<br/>Endpoints"]
-            Core["core/<br/>Config, DB, Security"]
-            Models["models/<br/>SQLAlchemy ORM"]
-            Schemas["schemas/<br/>Pydantic"]
-        end
-
-        Uvicorn["Uvicorn Server<br/>:8000"]
-        Alembic["Alembic<br/>Migration Tool"]
+    subgraph "FastAPI Application"
+        Main["main.py<br/>FastAPIエントリーポイント"]
+        API["api/endpoints/<br/>auth, categories,<br/>transactions, budgets"]
+        Core["core/<br/>config, database, security"]
+        Models["models/<br/>SQLAlchemy ORM"]
+        Schemas["schemas/<br/>Pydantic"]
+        Deps["api/dependencies.py<br/>認証・DI"]
     end
 
-    subgraph "kakeibon-postgres Container"
-        PG["PostgreSQL 15.15"]
-        DB["Database: kakeibo"]
-        Tables["Tables:<br/>users, categories,<br/>transactions, budgets"]
-    end
+    Uvicorn["Uvicorn Server<br/>:8000"]
+    Alembic["Alembic<br/>マイグレーション"]
+    PostgreSQL["PostgreSQL<br/>Database: kakeibon"]
 
     Main --> Uvicorn
     API --> Main
+    Deps --> API
     Core --> Main
     Models --> Core
     Schemas --> API
 
-    Alembic -.->|Migration| PG
-    Core -->|SQLAlchemy| PG
-    PG --> DB
-    DB --> Tables
+    Alembic -.->|Migration| PostgreSQL
+    Core -->|SQLAlchemy| PostgreSQL
 
     style Main fill:#4B8BBE,color:#fff
     style Uvicorn fill:#499848,color:#fff
-    style PG fill:#336791,color:#fff
-    style DB fill:#87CEEB,color:#000
+    style PostgreSQL fill:#336791,color:#fff
 ```
 
-### ネットワーク通信フロー（フロントエンド含む）
+#### フロントエンド構成
+
+```mermaid
+graph LR
+    subgraph "React Application"
+        Main["main.tsx<br/>エントリーポイント"]
+        App["App.tsx<br/>ルーティング"]
+        Pages["pages/<br/>Dashboard, Transactions,<br/>Categories, Budgets"]
+        Components["components/<br/>Layout, PrivateRoute"]
+        Context["contexts/<br/>AuthContext"]
+        Services["services/api.ts<br/>Axios Client"]
+        Types["types/<br/>型定義"]
+    end
+
+    Vite["Vite Dev Server<br/>:5173"]
+    Backend["Backend API<br/>:8000"]
+
+    Main --> Vite
+    App --> Main
+    Pages --> App
+    Components --> App
+    Context --> App
+    Services --> Context
+    Services --> Pages
+    Types --> Services
+
+    Services -->|HTTP/JSON| Backend
+
+    style Main fill:#646CFF,color:#fff
+    style Vite fill:#646CFF,color:#fff
+    style Backend fill:#009688,color:#fff
+```
+
+### ネットワーク通信フロー
 
 ```mermaid
 sequenceDiagram
     participant Browser
-    participant Vite as Vite<br/>:5173
+    participant Vite as Vite Dev Server<br/>:5173
     participant React as React App
     participant Axios as Axios Client
-    participant Uvicorn as Uvicorn<br/>:8000
-    participant FastAPI as FastAPI App
+    participant FastAPI as FastAPI<br/>:8000
     participant SQLAlchemy as SQLAlchemy
-    participant PostgreSQL as PostgreSQL<br/>(kakeibon-postgres)
+    participant PostgreSQL as PostgreSQL<br/>:5432
 
     Browser->>Vite: HTTP Request<br/>localhost:5173
     Vite-->>Browser: React App (HTML/JS/CSS)
     Browser->>React: User Action<br/>(e.g., Login)
     React->>Axios: API Call
-    Axios->>Uvicorn: HTTP Request<br/>localhost:8000/api/auth/login
-    Uvicorn->>FastAPI: Route Request
+    Axios->>FastAPI: HTTP Request<br/>localhost:8000/api/auth/login
     FastAPI->>SQLAlchemy: Query Data
-    SQLAlchemy->>PostgreSQL: SQL Query<br/>kakeibon-postgres:5432
+    SQLAlchemy->>PostgreSQL: SQL Query
     PostgreSQL-->>SQLAlchemy: Result Set
     SQLAlchemy-->>FastAPI: ORM Objects
-    FastAPI-->>Uvicorn: JSON Response<br/>(access_token, user)
-    Uvicorn-->>Axios: HTTP Response
+    FastAPI-->>Axios: JSON Response<br/>(access_token, user)
     Axios-->>React: Response Data
     React-->>Browser: Update UI
 ```
@@ -207,110 +226,79 @@ graph TD
 
 ## ポート構成
 
-| サービス | コンテナ内ポート | ホスト公開ポート | 用途 |
-|---------|----------------|-----------------|------|
-| PostgreSQL | 5432 | 5432 | データベース接続 |
-| FastAPI/Uvicorn | 8000 | 8000 | REST API サーバー |
-| Vite Dev Server | 5173 | 5173 | フロントエンド開発サーバー |
-
-## ボリュームマウント
-
-```mermaid
-graph LR
-    subgraph "WSLホスト"
-        ProjectDir["~/dev/python-docker-env/<br/>projects/kakeibon"]
-        InitDir["./db/init/"]
-    end
-
-    subgraph "PostgreSQLコンテナ"
-        PGData["/var/lib/postgresql/data"]
-        EntryPoint["/docker-entrypoint-initdb.d"]
-    end
-
-    subgraph "開発コンテナ"
-        WorkDir["/usr/src/projects/kakeibon"]
-    end
-
-    subgraph "Dockerボリューム"
-        Volume["postgres_data"]
-    end
-
-    ProjectDir -.->|bind mount| WorkDir
-    InitDir -.->|bind mount| EntryPoint
-    Volume -->|volume mount| PGData
-
-    style Volume fill:#FFA500,color:#fff
-    style PGData fill:#336791,color:#fff
-```
+| サービス | ポート | 用途 |
+|---------|-------|------|
+| PostgreSQL | 5432 | データベース接続 |
+| FastAPI/Uvicorn | 8000 | REST API サーバー |
+| Vite Dev Server | 5173 | フロントエンド開発サーバー |
 
 ## 接続情報まとめ
 
-### コンテナ間通信（内部ネットワーク）
+### データベース接続
 
-```
-開発コンテナ → PostgreSQL
-  Host: kakeibon-postgres
-  Port: 5432
-  Network: kakeibon-network (172.21.0.0/16)
-```
+```bash
+# ローカル開発環境
+Host: localhost
+Port: 5432
+Database: kakeibon
+User: postgres
+Password: password
 
-### WSLホスト → PostgreSQL
-
-```
-WSLホスト → PostgreSQL
-  Host: localhost
-  Port: 5432
-  接続: ポートフォワーディング経由
+# WSL2コンテナ環境から接続する場合
+Host: host.docker.internal
+Port: 5432
 ```
 
-### ブラウザ → アプリケーション
+### アプリケーションURL
 
 ```
-ブラウザ → React Frontend
-  URL: http://localhost:5173
-  フロントエンドアプリケーション
+フロントエンド:
+  http://localhost:5173
 
-ブラウザ → FastAPI (Direct)
-  URL: http://localhost:8000
-  Swagger UI: http://localhost:8000/docs
-  ReDoc: http://localhost:8000/redoc
+バックエンドAPI:
+  http://localhost:8000
+  http://localhost:8000/docs (Swagger UI)
+  http://localhost:8000/redoc (ReDoc)
 
-React Frontend → FastAPI (API)
+APIエンドポイント:
   Base URL: http://localhost:8000/api
-  Endpoints: /auth, /categories, /transactions, /budgets
+  - /api/auth (register, login, me)
+  - /api/categories (CRUD)
+  - /api/transactions (CRUD + フィルタ)
+  - /api/budgets (CRUD + フィルタ)
 ```
 
 ## セキュリティ考慮事項
 
-### ネットワーク分離
+### 認証・認可
 
 ```mermaid
-graph TB
-    subgraph "外部アクセス可能"
-        Browser[ブラウザ<br/>:8000]
-        DBClient[DBクライアント<br/>:5432]
-    end
+graph LR
+    Client[クライアント] -->|1. ログイン| Auth[認証エンドポイント]
+    Auth -->|2. JWT発行| Client
+    Client -->|3. Bearer Token| API[保護されたAPI]
+    API -->|4. トークン検証| Auth
+    Auth -->|5. ユーザー情報| API
+    API -->|6. レスポンス| Client
 
-    subgraph "内部ネットワーク<br/>kakeibon-network"
-        direction LR
-        Dev[開発コンテナ]
-        DB[PostgreSQL]
-        Dev <-->|内部通信| DB
-    end
-
-    Browser --> Dev
-    DBClient --> DB
-
-    style Browser fill:#90EE90,color:#000
-    style DBClient fill:#FFB6C1,color:#000
-    style Dev fill:#4B8BBE,color:#fff
-    style DB fill:#336791,color:#fff
+    style Auth fill:#FF6347,color:#fff
+    style API fill:#009688,color:#fff
 ```
 
-**重要**:
-- PostgreSQLは外部にポート公開されていますが、本番環境では非公開にすべきです
-- 開発環境でのみポートを公開し、本番環境では内部ネットワークのみで通信します
-- 認証情報（パスワード、SECRET_KEY）は必ず環境変数で管理し、.envファイルをgitignoreに追加済みです
+**実装されているセキュリティ機能**:
+- JWT (JSON Web Token) による認証
+- bcrypt によるパスワードハッシュ化
+- CORS 設定 (localhost:3000, localhost:5173 のみ許可)
+- 環境変数による機密情報管理 (.env ファイル)
+- 所有者チェック (ユーザーは自分のリソースのみ操作可能)
+
+**本番環境での注意事項**:
+- SECRET_KEY を強力なランダム文字列に変更
+- PostgreSQL を外部公開しない（アプリケーションからのみアクセス可能に）
+- HTTPS を必須化
+- CORS 設定を本番ドメインのみに制限
+- レート制限の実装
+- 定期的なセキュリティアップデート
 
 ## スケーリング構成（将来）
 

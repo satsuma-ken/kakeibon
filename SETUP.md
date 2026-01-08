@@ -2,10 +2,10 @@
 
 ## 前提条件
 
-- WSL2がインストールされていること
-- Dockerがインストールされていること
 - Python 3.11以上がインストールされていること
-- uvがインストールされていること
+- uv (Pythonパッケージマネージャー) がインストールされていること
+- Node.js 18以上と npm がインストールされていること
+- PostgreSQL 15以上がインストールされているか、起動可能であること
 
 ## 初期セットアップ
 
@@ -25,90 +25,77 @@ uv sync
 
 これにより、`.venv`ディレクトリに仮想環境が作成され、すべての依存関係がインストールされます。
 
-### 3. 環境変数の設定
+### 3. バックエンドの環境変数設定
 
 ```bash
-# backend/.envファイルを作成
 cd backend
 cp .env.example .env
 ```
 
-必要に応じて`.env`ファイルを編集してください：
+`.env`ファイルを編集し、PostgreSQLの接続情報を設定してください：
 
 ```bash
-DATABASE_URL=postgresql://postgres:password@kakeibon-postgres:5432/kakeibo
-SECRET_KEY=your-secret-key-change-in-production-please-use-strong-random-key
+# ローカル開発環境の場合
+DATABASE_URL=postgresql://postgres:password@localhost:5432/kakeibon
+
+# WSLコンテナ環境から接続する場合
+# DATABASE_URL=postgresql://postgres:password@host.docker.internal:5432/kakeibon
+
+SECRET_KEY=your-secret-key-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **重要**: 本番環境では必ず強力なSECRET_KEYに変更してください。
 
-### 4. PostgreSQLの起動
-
-#### WSLターミナルで実行
+### 4. フロントエンドの環境変数設定
 
 ```bash
-cd db
-docker-compose up -d
+cd frontend
+cp .env.example .env
 ```
 
-起動確認：
+通常は `.env.example` の内容をそのまま使用できます：
 
 ```bash
-docker-compose ps
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
-`kakeibon-postgres`コンテナが`Up`状態であることを確認してください。
+### 5. PostgreSQLの起動
 
-### 5. 開発コンテナをDockerネットワークに接続
+PostgreSQLが起動していることを確認してください。
 
-開発コンテナがPostgreSQLと通信できるように、同じネットワークに接続します。
+#### ローカルにインストールしている場合
 
 ```bash
-# 開発コンテナ名を確認
-docker ps --format "{{.Names}}"
-
-# kakeibon-networkに接続（コンテナ名は環境に応じて変更）
-docker network connect kakeibon-network python-claude-dev
+# PostgreSQLの起動確認
+psql -U postgres -h localhost -p 5432 -l
 ```
 
-接続確認：
+#### Dockerで起動する場合
 
 ```bash
-docker network inspect kakeibon-network
+docker run -d \
+  --name kakeibon-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=kakeibon \
+  -p 5432:5432 \
+  postgres:15
 ```
 
-`python-claude-dev`と`kakeibon-postgres`の両方が表示されることを確認します。
-
-### 6. データベース接続テスト
-
-開発コンテナ内で実行：
+### 6. フロントエンドの依存関係インストール
 
 ```bash
-cd /usr/src/projects/kakeibon/backend
-uv run python -c "
-from sqlalchemy import create_engine, text
-from app.core.config import settings
-
-engine = create_engine(settings.DATABASE_URL)
-with engine.connect() as conn:
-    result = conn.execute(text('SELECT version()'))
-    print('✅ 接続成功!', result.fetchone()[0][:50])
-"
+cd frontend
+npm install
 ```
 
 ### 7. データベースマイグレーション
 
-初回セットアップ時のみ実行：
+データベーステーブルを作成します：
 
 ```bash
-cd /usr/src/projects/kakeibon/backend
-
-# マイグレーションファイルの作成（既に作成済みの場合はスキップ）
-uv run alembic revision --autogenerate -m "Initial migration"
-
-# マイグレーションの実行
+cd backend
 uv run alembic upgrade head
 ```
 
@@ -131,114 +118,96 @@ with engine.connect() as conn:
 "
 ```
 
-### 8. FastAPIサーバーの起動
+### 8. アプリケーションの起動
+
+アプリケーションを起動するには、バックエンドとフロントエンドの2つのサービスを起動する必要があります。
+**それぞれ別のターミナルで実行してください。**
+
+#### ターミナル1: FastAPIバックエンド
 
 ```bash
-cd /usr/src/projects/kakeibon/backend
+cd backend
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-アクセス確認：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- ヘルスチェック: http://localhost:8000/health
+停止する場合: `Ctrl + C`
 
-### 9. フロントエンドのセットアップ
-
-#### 依存関係のインストール
+#### ターミナル2: Reactフロントエンド
 
 ```bash
-cd /usr/src/projects/kakeibon/frontend
-npm install
-```
-
-#### 環境変数の設定
-
-```bash
-# frontend/.envファイルを作成
-cp .env.example .env
-```
-
-`.env`ファイルの内容（必要に応じて変更）：
-
-```
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-#### フロントエンド開発サーバーの起動
-
-```bash
-cd /usr/src/projects/kakeibon/frontend
+cd frontend
 npm run dev
 ```
 
-アクセス確認：
-- フロントエンド: http://localhost:5173
+停止する場合: `Ctrl + C`
 
-**注意**: フロントエンドを使用するには、バックエンドAPI（ポート8000）が起動している必要があります。
+### 9. アクセス確認
+
+すべてのサービスが起動したら、以下のURLにアクセスできます：
+
+- **フロントエンド**: http://localhost:5173
+- **バックエンドAPI Swagger UI**: http://localhost:8000/docs
+- **バックエンドAPI ReDoc**: http://localhost:8000/redoc
+- **ヘルスチェック**: http://localhost:8000/health
 
 ## 日常的な開発フロー
 
-### サーバーの起動
+### アプリケーションの起動
 
-#### 1. PostgreSQLの起動
+開発を開始する際は、以下の手順でサービスを起動します：
+
+#### 1. PostgreSQLの起動確認
+
+PostgreSQLが起動していることを確認してください。
 
 ```bash
-cd /usr/src/projects/kakeibon/db
-docker-compose up -d
+# ローカルの場合: サービスステータス確認
+# Dockerの場合: コンテナステータス確認
+docker ps | grep postgres
 ```
 
-#### 2. FastAPIサーバーの起動
+#### 2. バックエンドの起動
 
 ```bash
-cd /usr/src/projects/kakeibon/backend
+cd backend
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-#### 3. フロントエンド開発サーバーの起動
+#### 3. フロントエンドの起動
 
 別のターミナルで実行：
 
 ```bash
-cd /usr/src/projects/kakeibon/frontend
+cd frontend
 npm run dev
 ```
 
-これでフルスタックアプリケーションが起動します：
-- フロントエンド: http://localhost:5173
-- バックエンドAPI: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
+### アプリケーションの停止
 
-### サーバーの停止
-
-#### フロントエンド開発サーバーの停止
-
-`Ctrl + C`
-
-#### FastAPIサーバーの停止
-
-`Ctrl + C`
-
-#### PostgreSQLの停止
-
-```bash
-cd /usr/src/projects/kakeibon/db
-docker-compose down
-```
-
-**注意**: `docker-compose down`を実行してもデータは永続化されています。
+各サービスは `Ctrl + C` で停止できます。
 
 ### データベースのリセット
 
 データベースを完全にリセットする場合：
 
-```bash
-cd /usr/src/projects/kakeibon/db
-docker-compose down -v  # ボリュームも削除
-docker-compose up -d
+#### Dockerで起動している場合
 
-# 再度マイグレーションを実行
-cd /usr/src/projects/kakeibon/backend
+```bash
+# コンテナとボリュームを削除
+docker stop kakeibon-postgres
+docker rm kakeibon-postgres
+docker volume prune
+
+# PostgreSQLを再起動
+docker run -d \
+  --name kakeibon-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=kakeibon \
+  -p 5432:5432 \
+  postgres:15
+
+# マイグレーションを再実行
+cd backend
 uv run alembic upgrade head
 ```
 
@@ -281,28 +250,31 @@ uv run alembic downgrade <revision_id>
 
 #### 症状
 ```
-psycopg2.OperationalError: could not translate host name "kakeibon-postgres"
+psycopg2.OperationalError: could not connect to server
 ```
 
 #### 解決方法
 
-1. PostgreSQLコンテナが起動しているか確認
+1. PostgreSQLが起動しているか確認
 
 ```bash
-docker ps | grep kakeibon-postgres
+# ローカルの場合
+psql -U postgres -h localhost -p 5432 -l
+
+# Dockerの場合
+docker ps | grep postgres
 ```
 
-2. 開発コンテナがネットワークに接続されているか確認
+2. DATABASE_URLが正しいか確認
 
 ```bash
-docker network inspect kakeibon-network
+# backend/.env ファイルを確認
+cat backend/.env
 ```
 
-3. 接続されていない場合は接続
-
-```bash
-docker network connect kakeibon-network python-claude-dev
-```
+3. ホスト名を確認
+   - ローカル環境: `localhost`
+   - WSL2コンテナ環境: `host.docker.internal`
 
 ### マイグレーションエラー
 
@@ -382,10 +354,16 @@ uv sync
 
 ### データベースへの直接接続
 
-WSLターミナルから：
+#### ローカルの場合
 
 ```bash
-docker exec -it kakeibon-postgres psql -U postgres -d kakeibo
+psql -U postgres -h localhost -d kakeibon
+```
+
+#### Dockerの場合
+
+```bash
+docker exec -it kakeibon-postgres psql -U postgres -d kakeibon
 ```
 
 ### ログの確認

@@ -2,16 +2,15 @@
 
 ## 開発環境概要
 
-本プロジェクトは、WSL2上のDockerコンテナ内で開発を行っています。
+本プロジェクトは、ローカルまたはWSL2環境で開発を行います。
 
 ### 環境構成
 
 ```
-WSL2 (Ubuntu)
-├── ホストマシン
-│   └── PostgreSQLコンテナ (kakeibon-postgres)
-└── 開発コンテナ (python-claude-dev)
-    └── FastAPIアプリケーション
+開発環境
+├── PostgreSQL (ローカルまたはDockerで起動)
+├── FastAPI バックエンド (Uvicorn)
+└── React フロントエンド (Vite)
 ```
 
 ## システム情報
@@ -27,9 +26,8 @@ WSL2 (Ubuntu)
 - **仮想環境**: `.venv` (uvによる自動管理)
 
 ### データベース
-- **DBMS**: PostgreSQL 15.15 (Alpine Linux)
-- **コンテナ名**: kakeibon-postgres
-- **データベース名**: kakeibo
+- **DBMS**: PostgreSQL 15以上
+- **データベース名**: kakeibon
 - **ポート**: 5432
 
 ### Webフレームワーク
@@ -61,6 +59,8 @@ kakeibon/
 ├── backend/                    # バックエンドアプリケーション
 │   ├── app/
 │   │   ├── api/               # APIエンドポイント
+│   │   │   ├── dependencies.py  # 認証・DI
+│   │   │   └── endpoints/     # auth, categories, transactions, budgets
 │   │   ├── core/              # コア機能（設定、DB、セキュリティ）
 │   │   ├── models/            # SQLAlchemyモデル
 │   │   ├── schemas/           # Pydanticスキーマ
@@ -69,15 +69,25 @@ kakeibon/
 │   ├── requirements.txt       # Python依存関係
 │   ├── .env                   # 環境変数（gitignore対象）
 │   └── .env.example           # 環境変数サンプル
-├── db/                        # データベース関連
-│   ├── docker-compose.yml     # PostgreSQL環境定義
-│   ├── init/                  # 初期化スクリプト
-│   ├── README.md              # DB使用方法
-│   └── SETUP.md               # DB接続設定手順
+├── frontend/                  # フロントエンドアプリケーション
+│   ├── src/
+│   │   ├── main.tsx          # エントリーポイント
+│   │   ├── App.tsx           # ルートコンポーネント
+│   │   ├── pages/            # ページコンポーネント
+│   │   ├── components/       # 共通コンポーネント
+│   │   ├── contexts/         # React Context
+│   │   ├── services/         # API通信
+│   │   └── types/            # TypeScript型定義
+│   ├── package.json          # Node.js依存関係
+│   ├── .env                  # 環境変数（gitignore対象）
+│   └── .env.example          # 環境変数サンプル
 ├── doc/                       # ドキュメント
+│   ├── ARCHITECTURE.md        # アーキテクチャ
 │   ├── ENVIRONMENT.md         # 環境情報（このファイル）
-│   └── prompts/               # プロンプト・仕様書
-├── pyproject.toml             # プロジェクト設定
+│   ├── SETUP.md              # セットアップ手順
+│   ├── NOTES.md              # 注意事項
+│   └── prompts/              # プロンプト・仕様書
+├── pyproject.toml             # プロジェクト設定（バックエンド）
 ├── .python-version            # Pythonバージョン指定
 └── README.md                  # プロジェクト概要
 ```
@@ -87,31 +97,21 @@ kakeibon/
 ### backend/.env
 
 ```bash
-DATABASE_URL=postgresql://postgres:password@kakeibon-postgres:5432/kakeibo
-SECRET_KEY=your-secret-key-change-in-production-please-use-strong-random-key
+# ローカル開発環境の場合
+DATABASE_URL=postgresql://postgres:password@localhost:5432/kakeibon
+
+# WSLコンテナ環境から接続する場合
+# DATABASE_URL=postgresql://postgres:password@host.docker.internal:5432/kakeibon
+
+SECRET_KEY=your-secret-key-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **重要**:
-- `kakeibon-postgres` はDockerネットワーク内でのホスト名です
-- ローカル開発（WSLホスト側）では `localhost` を使用
-- コンテナ環境では `kakeibon-postgres` を使用
-
-## ネットワーク構成
-
-### Dockerネットワーク: kakeibon-network
-
-- **タイプ**: bridge
-- **サブネット**: 172.21.0.0/16
-- **ゲートウェイ**: 172.21.0.1
-
-### 接続されているコンテナ
-
-| コンテナ名 | IPアドレス | 役割 |
-|-----------|-----------|------|
-| kakeibon-postgres | 172.21.0.2 | PostgreSQLデータベース |
-| python-claude-dev | 172.21.0.3 | 開発環境 |
+- ローカルで開発する場合は `localhost` を使用
+- WSL2のDockerコンテナから接続する場合は `host.docker.internal` を使用
+- 本番環境では必ず強力なSECRET_KEYに変更してください
 
 ## データベーススキーマ
 
@@ -164,22 +164,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ### PostgreSQL
 
-#### コンテナ内から接続
 ```bash
-Host: kakeibon-postgres
+Host: localhost (または host.docker.internal)
 Port: 5432
 User: postgres
 Password: password
-Database: kakeibo
-```
-
-#### WSLホストから接続
-```bash
-Host: localhost
-Port: 5432
-User: postgres
-Password: password
-Database: kakeibo
+Database: kakeibon
 ```
 
 ## 開発ツール
