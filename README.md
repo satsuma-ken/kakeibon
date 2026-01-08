@@ -94,19 +94,21 @@ uv run alembic upgrade head
 
 開発時は以下の2つのサービスを起動する必要があります。**それぞれ別のターミナルで実行してください。**
 
-#### ターミナル1: FastAPIバックエンド（開発コンテナ内）
+#### ターミナル1: FastAPIバックエンド
 
 ```bash
-cd /usr/src/projects/kakeibon/backend
+# プロジェクトルートから実行
+cd backend
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 停止する場合: `Ctrl + C`
 
-#### ターミナル2: React フロントエンド（開発コンテナ内）
+#### ターミナル2: React フロントエンド
 
 ```bash
-cd /usr/src/projects/kakeibon/frontend
+# プロジェクトルートから実行
+cd frontend
 npm run dev
 ```
 
