@@ -208,3 +208,6 @@ __marimo__/
 
 # Make Orphan
 doc/
+
+# cline hint
+.cline_hint/
