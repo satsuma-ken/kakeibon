@@ -29,12 +29,6 @@ npm install
 
 ### 2. 環境変数の設定
 
-`.env.example`をコピーして`.env`ファイルを作成します。
-
-```bash
-cp .env.example .env
-```
-
 必要に応じてAPIのURLを変更してください。
 
 ```
