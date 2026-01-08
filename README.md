@@ -76,11 +76,6 @@ npm install
 
 #### 2. 環境変数の設定
 
-```bash
-cd backend
-cp .env.example .env
-```
-
 必要に応じて`.env`ファイルを編集してください。
 
 #### 3. データベースマイグレーション
