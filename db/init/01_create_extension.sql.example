@@ -1,8 +1,0 @@
--- PostgreSQL拡張機能の有効化サンプル
--- 必要に応じて .example を削除してファイル名を 01_create_extension.sql にしてください
-
--- UUID拡張機能（UUIDを使用する場合）
--- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 全文検索用の日本語対応（必要な場合）
--- CREATE EXTENSION IF NOT EXISTS pg_trgm;
