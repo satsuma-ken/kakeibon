@@ -48,7 +48,7 @@ FastAPIとReactを使用した、モダンなフルスタック構成で開発�
 
 ## 開発起動手順
 
-このアプリケーションは、バックエンド（FastAPI）、データベース（PostgreSQL）、フロントエンド（React）の3つのサービスで構成されています。
+このアプリケーションは、バックエンド（FastAPI）とフロントエンド（React）の2つのサービスで構成されています。
 
 ### 前提条件
 
@@ -74,41 +74,7 @@ cd frontend
 npm install
 ```
 
-#### 2. PostgreSQLの起動
-
-**WSLターミナルで実行:**
-```bash
-cd db
-docker-compose up -d
-```
-
-起動確認:
-```bash
-docker-compose ps
-```
-
-`kakeibon-postgres`コンテナが`Up`状態であることを確認してください。
-
-#### 3. 開発コンテナをネットワークに接続
-
-開発コンテナがPostgreSQLと通信できるように、同じDockerネットワークに接続します。
-
-```bash
-# 開発コンテナ名を確認
-docker ps --format "{{.Names}}"
-
-# kakeibon-networkに接続（コンテナ名は環境に応じて変更）
-docker network connect kakeibon-network <your-container-name>
-```
-
-接続確認:
-```bash
-docker network inspect kakeibon-network
-```
-
-開発コンテナと`kakeibon-postgres`の両方が表示されることを確認します。
-
-#### 4. 環境変数の設定
+#### 2. 環境変数の設定
 
 ```bash
 cd backend
@@ -117,7 +83,7 @@ cp .env.example .env
 
 必要に応じて`.env`ファイルを編集してください。
 
-#### 5. データベースマイグレーション
+#### 3. データベースマイグレーション
 
 ```bash
 cd backend
@@ -126,21 +92,9 @@ uv run alembic upgrade head
 
 ### 日常的な開発起動手順
 
-開発時は以下の3つのサービスを起動する必要があります。**それぞれ別のターミナルで実行してください。**
+開発時は以下の2つのサービスを起動する必要があります。**それぞれ別のターミナルで実行してください。**
 
-#### ターミナル1: PostgreSQL
-
-```bash
-cd /usr/src/projects/kakeibon/db
-docker-compose up -d
-```
-
-停止する場合:
-```bash
-docker-compose down
-```
-
-#### ターミナル2: FastAPIバックエンド（開発コンテナ内）
+#### ターミナル1: FastAPIバックエンド（開発コンテナ内）
 
 ```bash
 cd /usr/src/projects/kakeibon/backend
@@ -149,7 +103,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 停止する場合: `Ctrl + C`
 
-#### ターミナル3: React フロントエンド（開発コンテナ内）
+#### ターミナル2: React フロントエンド（開発コンテナ内）
 
 ```bash
 cd /usr/src/projects/kakeibon/frontend
@@ -174,26 +128,7 @@ npm run dev
   - **ReDoc**: http://localhost:8000/redoc
   - **Health Check**: http://localhost:8000/health
 
-- **データベース**: localhost:5432
-  - ユーザー: `postgres`
-  - パスワード: `password`
-  - データベース: `kakeibo`
-
 ### トラブルシューティング
-
-#### データベースに接続できない
-
-```bash
-# PostgreSQLが起動しているか確認
-cd db
-docker-compose ps
-
-# ネットワーク接続を確認
-docker network inspect kakeibon-network
-
-# 開発コンテナを再接続
-docker network connect kakeibon-network <your-container-name>
-```
 
 #### ポートが既に使用されている
 
@@ -234,9 +169,6 @@ kakeibon/
 │   │   └── main.py      # エントリーポイント
 │   ├── alembic/         # マイグレーション
 │   └── .env             # 環境変数
-├── db/                  # データベース関連
-│   ├── docker-compose.yml
-│   └── init/            # 初期化スクリプト
 ├── doc/                 # ドキュメント
 └── frontend/            # フロントエンドアプリケーション
     ├── src/
