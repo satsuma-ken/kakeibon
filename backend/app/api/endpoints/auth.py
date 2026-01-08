@@ -4,16 +4,17 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
+from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, AuthResponse
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """
     新規ユーザー登録
@@ -23,7 +24,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         db: データベースセッション
 
     Returns:
-        作成されたユーザー情報
+        作成されたユーザー情報とアクセストークン
 
     Raises:
         HTTPException: メールアドレスが既に使用されている場合
@@ -47,10 +48,20 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    return new_user
+    # アクセストークンの生成
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(new_user.user_id)}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": new_user,
+    }
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=AuthResponse)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """
     ユーザーログイン
@@ -60,7 +71,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
         db: データベースセッション
 
     Returns:
-        アクセストークン
+        アクセストークンとユーザー情報
 
     Raises:
         HTTPException: 認証に失敗した場合
@@ -82,4 +93,22 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
         data={"sub": str(user.user_id)}, expires_delta=access_token_expires
     )
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user,
+    }
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    """
+    現在のユーザー情報を取得
+
+    Args:
+        current_user: 認証済みユーザー
+
+    Returns:
+        ユーザー情報
+    """
+    return current_user

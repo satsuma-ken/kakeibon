@@ -41,3 +41,10 @@ class Token(BaseModel):
     """トークンスキーマ"""
     access_token: str
     token_type: str = "bearer"
+
+
+class AuthResponse(BaseModel):
+    """認証レスポンススキーマ"""
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
