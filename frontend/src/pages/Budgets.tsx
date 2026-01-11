@@ -84,7 +84,7 @@ export const Budgets = () => {
 
   const getSpentAmount = (categoryId: string) => {
     return transactions
-      .filter((t) => t.category_id === categoryId && t.type === 'EXPENSE')
+      .filter((t) => t.category_id === categoryId && t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
@@ -208,8 +208,8 @@ export const Budgets = () => {
       {showModal && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" onClick={() => setShowModal(false)}></div>
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">新規予算の設定</h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -222,7 +222,7 @@ export const Budgets = () => {
                   >
                     <option value="">選択してください</option>
                     {categories
-                      .filter((c) => c.type === 'EXPENSE')
+                      .filter((c) => c.type === 'expense')
                       .map((category) => (
                         <option key={category.category_id} value={category.category_id}>
                           {category.name}
