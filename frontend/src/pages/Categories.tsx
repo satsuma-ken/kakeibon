@@ -2,13 +2,36 @@ import { useState, useEffect } from 'react';
 import { categoriesApi } from '../services/api';
 import type { Category, TransactionType } from '../types';
 
+const PRESET_COLORS = [
+  '#EF4444', // Red
+  '#F97316', // Orange
+  '#F59E0B', // Amber
+  '#EAB308', // Yellow
+  '#84CC16', // Lime
+  '#22C55E', // Green
+  '#10B981', // Emerald
+  '#14B8A6', // Teal
+  '#06B6D4', // Cyan
+  '#0EA5E9', // Sky
+  '#3B82F6', // Blue
+  '#6366F1', // Indigo
+  '#8B5CF6', // Violet
+  '#A855F7', // Purple
+  '#D946EF', // Fuchsia
+  '#EC4899', // Pink
+  '#F43F5E', // Rose
+  '#64748B', // Slate
+  '#78716C', // Stone
+  '#737373', // Neutral
+];
+
 export const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    type: 'EXPENSE' as TransactionType,
+    type: 'expense' as TransactionType,
     color: '#3B82F6',
   });
 
@@ -34,7 +57,7 @@ export const Categories = () => {
       setShowModal(false);
       setFormData({
         name: '',
-        type: 'EXPENSE',
+        type: 'expense',
         color: '#3B82F6',
       });
       loadCategories();
@@ -54,8 +77,8 @@ export const Categories = () => {
     }
   };
 
-  const incomeCategories = categories.filter((c) => c.type === 'INCOME');
-  const expenseCategories = categories.filter((c) => c.type === 'EXPENSE');
+  const incomeCategories = categories.filter((c) => c.type === 'income');
+  const expenseCategories = categories.filter((c) => c.type === 'expense');
 
   if (isLoading) {
     return (
@@ -165,8 +188,8 @@ export const Categories = () => {
       {showModal && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" onClick={() => setShowModal(false)}></div>
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">新規カテゴリの登録</h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -187,18 +210,36 @@ export const Categories = () => {
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   >
-                    <option value="EXPENSE">支出</option>
-                    <option value="INCOME">収入</option>
+                    <option value="expense">支出</option>
+                    <option value="income">収入</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">カラー</label>
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">カラー</label>
+                  <div className="grid grid-cols-10 gap-2">
+                    {PRESET_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, color })}
+                        className={`h-8 w-8 rounded-full transition-all ${
+                          formData.color === color
+                            ? 'ring-2 ring-offset-2 ring-gray-900 scale-110'
+                            : 'hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">選択中:</span>
+                    <div
+                      className="h-6 w-6 rounded-full border border-gray-300"
+                      style={{ backgroundColor: formData.color }}
+                    />
+                    <span className="text-xs font-mono text-gray-600">{formData.color}</span>
+                  </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3">
                   <button

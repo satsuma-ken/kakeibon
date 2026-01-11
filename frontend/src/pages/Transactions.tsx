@@ -10,7 +10,7 @@ export const Transactions = () => {
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
-    type: 'EXPENSE' as TransactionType,
+    type: 'expense' as TransactionType,
     date: new Date().toISOString().split('T')[0],
     memo: '',
   });
@@ -45,7 +45,7 @@ export const Transactions = () => {
       setFormData({
         category_id: '',
         amount: '',
-        type: 'EXPENSE',
+        type: 'expense',
         date: new Date().toISOString().split('T')[0],
         memo: '',
       });
@@ -142,20 +142,20 @@ export const Transactions = () => {
                       <td className="whitespace-nowrap px-3 py-4 text-sm">
                         <span
                           className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            transaction.type === 'INCOME'
+                            transaction.type === 'income'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {transaction.type === 'INCOME' ? '収入' : '支出'}
+                          {transaction.type === 'income' ? '収入' : '支出'}
                         </span>
                       </td>
                       <td
                         className={`whitespace-nowrap px-3 py-4 text-sm font-medium ${
-                          transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {transaction.type === 'INCOME' ? '+' : '-'}
+                        {transaction.type === 'income' ? '+' : '-'}
                         {formatCurrency(transaction.amount)}
                       </td>
                       <td className="px-3 py-4 text-sm text-gray-500">
@@ -188,8 +188,8 @@ export const Transactions = () => {
       {showModal && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" onClick={() => setShowModal(false)}></div>
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">新規取引の登録</h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -199,8 +199,8 @@ export const Transactions = () => {
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   >
-                    <option value="EXPENSE">支出</option>
-                    <option value="INCOME">収入</option>
+                    <option value="expense">支出</option>
+                    <option value="income">収入</option>
                   </select>
                 </div>
                 <div>

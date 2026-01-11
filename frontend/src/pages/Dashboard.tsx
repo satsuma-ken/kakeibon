@@ -33,11 +33,11 @@ export const Dashboard = () => {
   };
 
   const totalIncome = transactions
-    .filter((t) => t.type === 'INCOME')
+    .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalExpense = transactions
-    .filter((t) => t.type === 'EXPENSE')
+    .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpense;
@@ -53,7 +53,7 @@ export const Dashboard = () => {
   };
 
   const expenseByCategory = transactions
-    .filter((t) => t.type === 'EXPENSE')
+    .filter((t) => t.type === 'expense')
     .reduce((acc, t) => {
       const categoryName = getCategoryName(t.category_id);
       acc[categoryName] = (acc[categoryName] || 0) + t.amount;
@@ -269,10 +269,10 @@ export const Dashboard = () => {
                     <div className="text-right">
                       <p
                         className={`text-sm font-medium ${
-                          transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {transaction.type === 'INCOME' ? '+' : '-'}
+                        {transaction.type === 'income' ? '+' : '-'}
                         {formatCurrency(transaction.amount)}
                       </p>
                       {transaction.memo && (
