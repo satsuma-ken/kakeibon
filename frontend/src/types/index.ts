@@ -22,7 +22,7 @@ export interface AuthResponse {
   user: User;
 }
 
-export type TransactionType = 'INCOME' | 'EXPENSE';
+export type TransactionType = 'income' | 'expense';
 
 export interface Category {
   category_id: string;
