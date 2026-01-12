@@ -22,7 +22,7 @@ class CategoryBase(BaseModel):
         if self.is_recurring:
             if not self.frequency:
                 raise ValueError("固定費の場合は頻度が必要です")
-            if not self.default_amount or self.default_amount <= 0:
+            if not self.default_amount or self.default_amount <= 1:
                 raise ValueError("固定費の場合は標準金額が必要です")
         return self
 
