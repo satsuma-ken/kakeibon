@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 import { categoriesApi } from '../services/api';
 import type { Category, TransactionType } from '../types';
 
@@ -26,6 +27,20 @@ const PRESET_COLORS = [
   '#737373', // Neutral
 ];
 
+// エラーメッセージを具体化するヘルパー関数
+const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+  if (axios.isAxiosError(error)) {
+    if (!error.response) {
+      return 'ネットワークエラー: サーバーに接続できません';
+    } else if (error.response.status >= 500) {
+      return 'サーバーエラーが発生しました';
+    } else if (error.response.status === 400) {
+      return '入力内容に誤りがあります';
+    }
+  }
+  return defaultMessage;
+};
+
 export const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +63,8 @@ export const Categories = () => {
       const data = await categoriesApi.getAll();
       setCategories(data);
     } catch (error) {
-      toast.error('カテゴリの読み込みに失敗しました');
+      const errorMessage = getErrorMessage(error, 'カテゴリの読み込みに失敗しました');
+      toast.error(errorMessage);
       console.error('カテゴリの読み込みに失敗しました', error);
     } finally {
       setIsLoading(false);
@@ -58,8 +74,8 @@ export const Categories = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.is_recurring && (!formData.frequency || !formData.default_amount)) {
-      toast.error('固定費の場合は頻度と標準金額が必要です');
+    if (formData.is_recurring && (!formData.frequency || !formData.default_amount || formData.default_amount === '0')) {
+      toast.error('固定費の場合は頻度と標準金額（1円以上）が必要です');
       return;
     }
 
@@ -84,7 +100,8 @@ export const Categories = () => {
       toast.success('カテゴリを登録しました');
       loadCategories();
     } catch (error) {
-      toast.error('カテゴリの登録に失敗しました');
+      const errorMessage = getErrorMessage(error, 'カテゴリの登録に失敗しました');
+      toast.error(errorMessage);
       console.error('カテゴリの登録に失敗しました', error);
     }
   };
@@ -96,7 +113,8 @@ export const Categories = () => {
         toast.success('カテゴリを削除しました');
         loadCategories();
       } catch (error) {
-        toast.error('カテゴリの削除に失敗しました');
+        const errorMessage = getErrorMessage(error, 'カテゴリの削除に失敗しました');
+        toast.error(errorMessage);
         console.error('カテゴリの削除に失敗しました', error);
       }
     }

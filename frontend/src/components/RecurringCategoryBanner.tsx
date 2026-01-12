@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
 import { categoriesApi } from '../services/api';
 import type { Category } from '../types';
 
@@ -25,7 +24,6 @@ export const RecurringCategoryBanner = ({ onRegister }: RecurringCategoryBannerP
       setUnregisteredCategories(data);
     } catch (error) {
       setHasError(true);
-      toast.error('未登録固定費の取得に失敗しました');
       console.error('未登録固定費の取得に失敗しました', error);
     } finally {
       setIsLoading(false);
