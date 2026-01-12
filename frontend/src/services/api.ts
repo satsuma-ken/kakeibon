@@ -75,6 +75,12 @@ export const categoriesApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/categories/${id}`);
   },
+
+  getUnregisteredRecurring: async (month?: string): Promise<Category[]> => {
+    const params = month ? { month } : {};
+    const response = await api.get<Category[]>('/api/categories/recurring/unregistered', { params });
+    return response.data;
+  },
 };
 
 export const transactionsApi = {

@@ -33,6 +33,9 @@ export const Categories = () => {
     name: '',
     type: 'expense' as TransactionType,
     color: '#3B82F6',
+    is_recurring: false,
+    frequency: 'monthly' as 'monthly' | 'yearly',
+    default_amount: '',
   });
 
   useEffect(() => {
@@ -52,13 +55,29 @@ export const Categories = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.is_recurring && (!formData.frequency || !formData.default_amount)) {
+      console.error('固定費の場合は頻度と標準金額が必要です');
+      return;
+    }
+
     try {
-      await categoriesApi.create(formData);
+      await categoriesApi.create({
+        name: formData.name,
+        type: formData.type,
+        color: formData.color,
+        is_recurring: formData.is_recurring,
+        frequency: formData.is_recurring ? formData.frequency : undefined,
+        default_amount: formData.is_recurring ? parseInt(formData.default_amount) : undefined,
+      });
       setShowModal(false);
       setFormData({
         name: '',
         type: 'expense',
         color: '#3B82F6',
+        is_recurring: false,
+        frequency: 'monthly',
+        default_amount: '',
       });
       loadCategories();
     } catch (error) {
@@ -121,7 +140,14 @@ export const Categories = () => {
                         style={{ backgroundColor: category.color || '#3B82F6' }}
                       ></div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">{category.name}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {category.name}
+                          {category.is_recurring && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              固定費 ({category.frequency === 'monthly' ? '毎月' : '毎年'})
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {new Date(category.created_at).toLocaleDateString('ja-JP')}
                         </p>
@@ -160,7 +186,14 @@ export const Categories = () => {
                         style={{ backgroundColor: category.color || '#3B82F6' }}
                       ></div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">{category.name}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {category.name}
+                          {category.is_recurring && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              固定費 ({category.frequency === 'monthly' ? '毎月' : '毎年'})
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {new Date(category.created_at).toLocaleDateString('ja-JP')}
                         </p>
@@ -241,6 +274,59 @@ export const Categories = () => {
                     <span className="text-xs font-mono text-gray-600">{formData.color}</span>
                   </div>
                 </div>
+
+                {/* 固定費チェックボックス */}
+                <div>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_recurring}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        is_recurring: e.target.checked
+                      })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">固定費として設定</span>
+                  </label>
+                </div>
+
+                {/* 条件付きフィールド */}
+                {formData.is_recurring && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">頻度</label>
+                      <select
+                        value={formData.frequency}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          frequency: e.target.value as 'monthly' | 'yearly'
+                        })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      >
+                        <option value="monthly">毎月</option>
+                        <option value="yearly">毎年</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">標準金額</label>
+                      <input
+                        type="number"
+                        value={formData.default_amount}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          default_amount: e.target.value
+                        })}
+                        required={formData.is_recurring}
+                        min="1"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        placeholder="50000"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3">
                   <button
                     type="submit"
