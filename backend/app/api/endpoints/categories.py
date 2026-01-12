@@ -229,32 +229,28 @@ def get_unregistered_recurring_categories(
     else:
         end_date = date(year, month_num + 1, 1) - timedelta(days=1)
 
-    # ユーザーの固定費カテゴリを取得
-    recurring_categories = (
+    # 一度のクエリで未登録の固定費カテゴリを取得（N+1問題を回避）
+    # サブクエリ: 対象月に取引があるカテゴリIDを取得
+    registered_category_ids = (
+        db.query(Transaction.category_id)
+        .filter(
+            Transaction.user_id == current_user.user_id,
+            Transaction.date >= start_date,
+            Transaction.date <= end_date
+        )
+        .distinct()
+        .subquery()
+    )
+
+    # 固定費カテゴリのうち、対象月に取引がないものを取得
+    unregistered = (
         db.query(Category)
         .filter(
             Category.user_id == current_user.user_id,
-            Category.is_recurring == True
+            Category.is_recurring.is_(True),
+            ~Category.category_id.in_(registered_category_ids)
         )
         .all()
     )
-
-    # 未登録のカテゴリをフィルタ
-    unregistered = []
-    for category in recurring_categories:
-        # 対象月に取引があるか確認
-        transaction_count = (
-            db.query(Transaction)
-            .filter(
-                Transaction.category_id == category.category_id,
-                Transaction.user_id == current_user.user_id,
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            )
-            .count()
-        )
-
-        if transaction_count == 0:
-            unregistered.append(category)
 
     return unregistered
