@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { categoriesApi } from '../services/api';
 import type { Category, TransactionType } from '../types';
 
@@ -47,6 +48,7 @@ export const Categories = () => {
       const data = await categoriesApi.getAll();
       setCategories(data);
     } catch (error) {
+      toast.error('カテゴリの読み込みに失敗しました');
       console.error('カテゴリの読み込みに失敗しました', error);
     } finally {
       setIsLoading(false);
@@ -57,7 +59,7 @@ export const Categories = () => {
     e.preventDefault();
 
     if (formData.is_recurring && (!formData.frequency || !formData.default_amount)) {
-      console.error('固定費の場合は頻度と標準金額が必要です');
+      toast.error('固定費の場合は頻度と標準金額が必要です');
       return;
     }
 
@@ -79,8 +81,10 @@ export const Categories = () => {
         frequency: 'monthly',
         default_amount: '',
       });
+      toast.success('カテゴリを登録しました');
       loadCategories();
     } catch (error) {
+      toast.error('カテゴリの登録に失敗しました');
       console.error('カテゴリの登録に失敗しました', error);
     }
   };
@@ -89,8 +93,10 @@ export const Categories = () => {
     if (window.confirm('このカテゴリを削除してもよろしいですか?')) {
       try {
         await categoriesApi.delete(id);
+        toast.success('カテゴリを削除しました');
         loadCategories();
       } catch (error) {
+        toast.error('カテゴリの削除に失敗しました');
         console.error('カテゴリの削除に失敗しました', error);
       }
     }

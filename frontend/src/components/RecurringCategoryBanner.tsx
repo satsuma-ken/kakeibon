@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { categoriesApi } from '../services/api';
 import type { Category } from '../types';
 
@@ -10,16 +11,21 @@ export const RecurringCategoryBanner = ({ onRegister }: RecurringCategoryBannerP
   const [unregisteredCategories, setUnregisteredCategories] = useState<Category[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     loadUnregisteredCategories();
   }, []);
 
   const loadUnregisteredCategories = async () => {
+    setIsLoading(true);
+    setHasError(false);
     try {
       const data = await categoriesApi.getUnregisteredRecurring();
       setUnregisteredCategories(data);
     } catch (error) {
+      setHasError(true);
+      toast.error('未登録固定費の取得に失敗しました');
       console.error('未登録固定費の取得に失敗しました', error);
     } finally {
       setIsLoading(false);
@@ -30,7 +36,47 @@ export const RecurringCategoryBanner = ({ onRegister }: RecurringCategoryBannerP
     setIsVisible(false);
   };
 
-  if (isLoading || !isVisible || unregisteredCategories.length === 0) {
+  if (isLoading || !isVisible) {
+    return null;
+  }
+
+  // エラー状態の表示
+  if (hasError) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3 flex-1">
+            <p className="text-sm text-red-700 font-medium">
+              未登録固定費の読み込みに失敗しました
+            </p>
+            <button
+              onClick={loadUnregisteredCategories}
+              className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-800 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+            >
+              再読み込み
+            </button>
+          </div>
+          <div className="ml-auto pl-3">
+            <button
+              onClick={handleDismiss}
+              className="inline-flex text-red-400 hover:text-red-600"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (unregisteredCategories.length === 0) {
     return null;
   }
 
