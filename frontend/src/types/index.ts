@@ -24,6 +24,8 @@ export interface AuthResponse {
 
 export type TransactionType = 'income' | 'expense';
 
+export type RecurringFrequency = 'monthly' | 'yearly';
+
 export interface Category {
   category_id: string;
   user_id: string;
@@ -31,6 +33,9 @@ export interface Category {
   type: TransactionType;
   color?: string;
   created_at: string;
+  is_recurring?: boolean;
+  frequency?: RecurringFrequency;
+  default_amount?: number;
 }
 
 export interface Transaction {
@@ -59,6 +64,9 @@ export interface CreateCategoryRequest {
   name: string;
   type: TransactionType;
   color?: string;
+  is_recurring?: boolean;
+  frequency?: RecurringFrequency;
+  default_amount?: number;
 }
 
 export interface CreateTransactionRequest {
