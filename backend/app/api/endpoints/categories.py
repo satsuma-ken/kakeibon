@@ -1,12 +1,15 @@
 """カテゴリ関連のエンドポイント"""
+from datetime import date, timedelta
+from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.category import Category
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
 
@@ -35,6 +38,9 @@ def create_category(
         name=category_data.name,
         type=category_data.type,
         color=category_data.color,
+        is_recurring=category_data.is_recurring,
+        frequency=category_data.frequency,
+        default_amount=category_data.default_amount,
     )
 
     db.add(new_category)
@@ -189,3 +195,62 @@ def delete_category(
 
     db.delete(category)
     db.commit()
+
+
+@router.get("/recurring/unregistered", response_model=list[CategoryResponse])
+def get_unregistered_recurring_categories(
+    month: Optional[date] = Query(None, description="対象月（YYYY-MM-DD形式）"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    未登録の固定費カテゴリを取得
+
+    指定された月（デフォルトは当月）で、is_recurring=Trueのカテゴリのうち
+    該当月にトランザクションが登録されていないものを返す
+
+    Args:
+        month: 対象月（省略時は当月）
+        current_user: 認証済みユーザー
+        db: データベースセッション
+
+    Returns:
+        未登録の固定費カテゴリ一覧
+    """
+    # 対象月の設定（デフォルトは当月）
+    target_date = month if month else date.today()
+    year = target_date.year
+    month_num = target_date.month
+
+    # 月の開始日と終了日を計算
+    start_date = date(year, month_num, 1)
+    if month_num == 12:
+        end_date = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        end_date = date(year, month_num + 1, 1) - timedelta(days=1)
+
+    # 一度のクエリで未登録の固定費カテゴリを取得（N+1問題を回避）
+    # サブクエリ: 対象月に取引があるカテゴリIDを取得
+    registered_category_ids = (
+        db.query(Transaction.category_id)
+        .filter(
+            Transaction.user_id == current_user.user_id,
+            Transaction.date >= start_date,
+            Transaction.date <= end_date
+        )
+        .distinct()
+        .subquery()
+    )
+
+    # 固定費カテゴリのうち、対象月に取引がないものを取得
+    unregistered = (
+        db.query(Category)
+        .filter(
+            Category.user_id == current_user.user_id,
+            Category.is_recurring.is_(True),
+            ~Category.category_id.in_(registered_category_ids)
+        )
+        .all()
+    )
+
+    return unregistered

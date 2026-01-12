@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { transactionsApi, categoriesApi } from '../services/api';
-import type { Transaction, Category } from '../types';
+import type { Transaction, Category, TransactionType } from '../types';
+import { RecurringCategoryBanner } from '../components/RecurringCategoryBanner';
 
 export const Dashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -9,6 +10,15 @@ export const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().toISOString().slice(0, 7)
   );
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [transactionFormData, setTransactionFormData] = useState({
+    category_id: '',
+    amount: '',
+    type: 'expense' as TransactionType,
+    date: new Date().toISOString().split('T')[0],
+    memo: '',
+  });
+  const [bannerKey, setBannerKey] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -29,6 +39,39 @@ export const Dashboard = () => {
       console.error('データの読み込みに失敗しました', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRegisterRecurring = (category: Category) => {
+    setTransactionFormData({
+      category_id: category.category_id,
+      amount: category.default_amount?.toString() || '',
+      type: category.type,
+      date: new Date().toISOString().split('T')[0],
+      memo: '',
+    });
+    setShowTransactionModal(true);
+  };
+
+  const handleTransactionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await transactionsApi.create({
+        ...transactionFormData,
+        amount: parseInt(transactionFormData.amount),
+      });
+      setShowTransactionModal(false);
+      setTransactionFormData({
+        category_id: '',
+        amount: '',
+        type: 'expense',
+        date: new Date().toISOString().split('T')[0],
+        memo: '',
+      });
+      loadData(); // ダッシュボードをリロード
+      setBannerKey(prev => prev + 1); // バナーをリフレッシュ
+    } catch (error) {
+      console.error('取引の作成に失敗しました', error);
     }
   };
 
@@ -95,6 +138,8 @@ export const Dashboard = () => {
           />
         </div>
       </div>
+
+      <RecurringCategoryBanner key={bannerKey} onRegister={handleRegisterRecurring} />
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
         <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -288,6 +333,94 @@ export const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* 取引登録モーダル */}
+      {showTransactionModal && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" onClick={() => setShowTransactionModal(false)}></div>
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">取引の登録</h3>
+              <form onSubmit={handleTransactionSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">カテゴリ</label>
+                  <select
+                    value={transactionFormData.category_id}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, category_id: e.target.value })}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    <option value="">カテゴリを選択</option>
+                    {categories
+                      .filter((c) => c.type === transactionFormData.type)
+                      .map((category) => (
+                        <option key={category.category_id} value={category.category_id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">金額</label>
+                  <input
+                    type="number"
+                    value={transactionFormData.amount}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, amount: e.target.value })}
+                    required
+                    min="1"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">種別</label>
+                  <select
+                    value={transactionFormData.type}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, type: e.target.value as TransactionType, category_id: '' })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    <option value="expense">支出</option>
+                    <option value="income">収入</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">日付</label>
+                  <input
+                    type="date"
+                    value={transactionFormData.date}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, date: e.target.value })}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">メモ（任意）</label>
+                  <textarea
+                    value={transactionFormData.memo}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, memo: e.target.value })}
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3">
+                  <button
+                    type="submit"
+                    className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
+                  >
+                    登録
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowTransactionModal(false)}
+                    className="mt-3 sm:mt-0 inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
