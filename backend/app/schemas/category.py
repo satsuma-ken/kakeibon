@@ -15,14 +15,14 @@ class CategoryBase(BaseModel):
     color: str = Field(default="#808080", pattern=r"^#[0-9A-Fa-f]{6}$")
     is_recurring: bool = Field(default=False)
     frequency: Optional[str] = None  # 'monthly' | 'yearly'
-    default_amount: Optional[int] = Field(None, ge=0)
+    default_amount: Optional[int] = Field(None, ge=1)
 
     @model_validator(mode='after')
     def validate_recurring_fields(self):
         if self.is_recurring:
             if not self.frequency:
                 raise ValueError("固定費の場合は頻度が必要です")
-            if not self.default_amount or self.default_amount <= 1:
+            if not self.default_amount or self.default_amount < 1:
                 raise ValueError("固定費の場合は標準金額が必要です")
         return self
 
