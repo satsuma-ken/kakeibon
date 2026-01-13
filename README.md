@@ -65,7 +65,7 @@ FastAPIとReactを使用した、モダンなフルスタック構成で開発�
 このプロジェクトのドキュメントは、orphanブランチ `doc` で管理されています。初回セットアップ時に以下のコマンドでドキュメントを取得してください。
 
 ```bash
-# プロジェクトルートで実行
+# プロジェクトルートで実行  
 git fetch origin
 git worktree add doc origin/orphan-doc
 cd doc
