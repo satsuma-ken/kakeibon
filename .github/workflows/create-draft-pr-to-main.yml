@@ -7,30 +7,46 @@ on:
     types:
       - closed
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   create-draft-pr:
-    # PRがマージされた場合のみ実行
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: dev  # devブランチをチェックアウト
-
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: dev
-          base: main
-          draft: true
-          title: "Release: Dev to Main"
-          body: |
-            ## 自動生成されたリリースPR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # devとmainの差分を確認
+          gh api repos/${{ github.repository }}/compare/main...dev \
+            --jq '.ahead_by' > /tmp/ahead_by
+          
+          AHEAD_BY=$(cat /tmp/ahead_by)
+          
+          if [ "$AHEAD_BY" -gt 0 ]; then
+            # PRが既に存在するか確認
+            EXISTING_PR=$(gh pr list --base main --head dev --json number --jq '.[0].number')
             
-            DevブランチからMainブランチへのマージ準備
-            
-            ### マージされたPR
-            - #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+            if [ -z "$EXISTING_PR" ]; then
+              # PRを作成
+              gh pr create \
+                --base main \
+                --head dev \
+                --title "Release: Dev to Main" \
+                --body "## 自動生成されたリリースPR
+
+          DevブランチからMainブランチへのマージ準備
+
+          ### マージされたPR
+          - #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
+                --draft
+              echo "Draft PR created successfully"
+            else
+              echo "PR already exists: #$EXISTING_PR"
+            fi
+          else
+            echo "No differences between dev and main"
+          fi
