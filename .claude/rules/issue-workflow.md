@@ -37,11 +37,26 @@ git checkout main
 git pull origin main
 
 # Issue番号に基づいた作業ブランチを作成
-git checkout -b feature/issue-<issue-number>-<short-description>
+git checkout -b <prefix>/<issue-number>_<short-description>
 ```
 
-- ブランチ命名規則: `feature/issue-<number>-<short-desc>` または `fix/issue-<number>-<short-desc>`
-- 例: `feature/issue-123-add-export-function`, `fix/issue-456-login-bug`
+**ブランチ命名規則:**
+
+| 変更の種類 | プレフィックス | 命名形式 | 例 |
+|-----------|--------------|---------|-----|
+| 大きな変更・新機能 | `feature/` | `feature/<issue番号>_<対応内容要約（英語）>` | `feature/123_add_csv_export` |
+| 小さな変更・改善 | `topic/` | `topic/<issue番号>_<対応内容要約（英語）>` | `topic/456_update_button_style` |
+| バグ修正 | `fix/` | `fix/<issue番号>_<対応内容要約（英語）>` | `fix/789_login_validation_bug` |
+| 緊急修正 | `hotfix/` | `hotfix/<issue番号>_<対応内容要約（英語）>` | `hotfix/101_critical_security_fix` |
+| リファクタリング | `refactor/` | `refactor/<issue番号>_<対応内容要約（英語）>` | `refactor/202_simplify_auth_logic` |
+| ドキュメント更新 | `docs/` | `docs/<issue番号>_<対応内容要約（英語）>` | `docs/303_update_api_readme` |
+
+**命名ルール:**
+- セパレータは**アンダースコア（`_`）**を使用
+- 対応内容要約は**英語**で記載
+- スネークケースで記述（単語間もアンダースコア）
+- 簡潔に（2-4単語程度）、内容が分かるように記述
+- Issue番号は必須
 
 ### 3. 作業計画の立案（Plan Mode）
 
