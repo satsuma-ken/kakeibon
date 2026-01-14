@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/Layout';
 import { PrivateRoute } from './components/PrivateRoute';
@@ -13,6 +14,18 @@ import { Budgets } from './pages/Budgets';
 function App() {
   return (
     <AuthProvider>
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        gutter={8}
+        toastOptions={{
+          duration: 3000,
+          style: {
+            fontSize: '14px',
+            maxWidth: '500px',
+          },
+        }}
+      />
       <Router>
         <Routes>
           <Route path="/" element={<Home />} />
