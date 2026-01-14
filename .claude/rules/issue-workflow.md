@@ -133,48 +133,130 @@ npm run build
 # TypeScript: ESLint
 ```
 
-### 7. Pull Requestの作成
+### 7. リモートへのプッシュとPull Requestの作成（必須）
 
-**PRの作成前チェック:**
+**このステップは必ず自動的に実行してください。**
 
-- [ ] すべての変更がコミット済み
-- [ ] テストが通過
-- [ ] ビルドエラーがない
-- [ ] 不要なデバッグコードやコメントを削除
+#### 7-1. 最終チェックと状態確認
 
-**PRの作成:**
+作業完了後、以下を自動的に確認:
 
 ```bash
-# リモートにプッシュ
-git push -u origin feature/issue-<issue-number>-<short-description>
+# Git状態の確認
+git status
 
-# PRを作成（devブランチに対して）
-gh pr create --base dev --title "Issue #<issue-number>: <title>" --body "$(cat <<'EOF'
+# すべての変更がコミット済みか確認
+# 未コミットの変更がある場合 → ユーザーに通知して対応を確認
+```
+
+#### 7-2. リモートへのプッシュ
+
+```bash
+# 現在のブランチをリモートにプッシュ
+git push -u origin <current-branch-name>
+```
+
+**プッシュ時のエラー対応:**
+- リモートブランチが存在しない → `-u origin` で新規作成
+- プッシュが拒否される → ユーザーに状況を報告
+
+#### 7-3. PR作成の準備
+
+PRを作成する前に、以下の情報を収集:
+
+1. **ターゲットブランチの確認**:
+```bash
+# devブランチの存在確認
+git branch -r | grep "origin/dev"
+
+# 存在しない場合はmainブランチを使用
+git branch -r | grep "origin/main"
+```
+
+2. **Issue情報の取得**:
+```bash
+# Issue内容を再取得してPR本文を作成
+gh issue view <issue-number>
+```
+
+#### 7-4. Pull Requestの自動作成
+
+**必ず以下のコマンドでPRを作成してください:**
+
+```bash
+# PRを作成（devブランチが存在する場合）
+gh pr create --base dev --title "Issue #<issue-number>: <issue-title>" --body "$(cat <<'EOF'
 ## 概要
+
 Closes #<issue-number>
 
-<Issue内容の要約>
+<Issue内容の簡潔な要約を記載>
 
 ## 変更内容
+
+<実装した内容を箇条書きで記載>
 - 変更点1
 - 変更点2
+- 変更点3
+
+## 実装したファイル
+
+<変更したファイルのリストを記載>
+- `path/to/file1.py`
+- `path/to/file2.tsx`
 
 ## テスト
-- [ ] ユニットテスト追加/更新
-- [ ] 手動動作確認済み
+
+- [x] ビルドエラーなし
+- [x] 動作確認済み
+- [ ] ユニットテスト追加（必要に応じて）
 
 ## 補足事項
-（必要に応じて追加情報を記載）
+
+<特記事項があれば記載>
 
 🤖 Generated with Claude Code
 EOF
 )"
 ```
 
-**PR作成後:**
+**devブランチが存在しない場合:**
 
-- Issueにコメントして、PR作成を報告
-- レビュー依頼が必要な場合、レビュアーを指定
+```bash
+# mainブランチに対してPRを作成
+gh pr create --base main --title "Issue #<issue-number>: <issue-title>" --body "..."
+```
+
+#### 7-5. PR作成後の報告
+
+PRが正常に作成されたら、以下を実行:
+
+```bash
+# PR URLを取得
+gh pr view --web
+```
+
+**ユーザーへの報告内容:**
+- PR作成完了の通知
+- PR URL
+- PRのタイトルとターゲットブランチ
+
+**Issueへのコメント投稿:**
+
+```bash
+# IssueにPR作成を報告
+gh issue comment <issue-number> --body "✅ Pull Request作成完了
+
+PR: #<pr-number>
+
+レビューをお願いします。"
+```
+
+#### エラー時の対応
+
+- **gh コマンドが使えない**: ユーザーに手動でのPR作成を依頼
+- **devブランチが存在しない**: mainブランチを使用（ユーザーに確認）
+- **PRが既に存在**: 既存のPR URLを報告
 
 ## 例外ケース
 
@@ -205,8 +287,9 @@ Issue対応時には、以下のチェックリストを使用してください
 - [ ] 作業計画をIssueにコメント
 - [ ] TodoWriteで作業を追跡しながら実装
 - [ ] テスト実行・動作確認
-- [ ] devブランチに対してPRを作成
-- [ ] IssueにPR作成を報告
+- [ ] **リモートへプッシュ（自動実行）**
+- [ ] **devブランチに対してPRを作成（自動実行）**
+- [ ] **IssueにPR作成を報告（自動実行）**
 
 ## 備考
 
