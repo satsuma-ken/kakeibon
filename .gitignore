@@ -211,3 +211,11 @@ doc/
 
 # cline hint
 .cline_hint/
+
+# Claude Code
+# Personal settings and memory (not shared with team)
+.claude/settings.local.json
+.claude/CLAUDE.local.md
+.claude/*.local.*
+.claude-session/
+.claude-cache/
