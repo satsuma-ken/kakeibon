@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { isConnectionError, showLoginErrorToast } from '../utils/errorHandler';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +21,10 @@ export const Login = () => {
       await login({ email, password });
       navigate('/dashboard');
     } catch (err) {
-      setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+      // 接続エラーはinterceptorで処理済み、それ以外（認証失敗）はここで表示
+      if (!isConnectionError(err)) {
+        showLoginErrorToast();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +120,7 @@ export const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full box-border pl-8 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50"
-                    placeholder="••••••••"
+                    placeholder="password"
                   />
                   <button
                     type="button"

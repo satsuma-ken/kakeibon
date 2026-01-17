@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { categoriesApi } from '../services/api';
 import type { Category, TransactionType } from '../types';
+import { showErrorToast, showSuccessToast, showValidationError } from '../utils/errorHandler';
 
 const PRESET_COLORS = [
   '#EF4444', // Red
@@ -47,7 +48,7 @@ export const Categories = () => {
       const data = await categoriesApi.getAll();
       setCategories(data);
     } catch (error) {
-      console.error('カテゴリの読み込みに失敗しました', error);
+      showErrorToast(error, 'カテゴリの読み込みに失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +58,7 @@ export const Categories = () => {
     e.preventDefault();
 
     if (formData.is_recurring && (!formData.frequency || !formData.default_amount)) {
-      console.error('固定費の場合は頻度と標準金額が必要です');
+      showValidationError('固定費の場合は頻度と標準金額が必要です');
       return;
     }
 
@@ -80,8 +81,9 @@ export const Categories = () => {
         default_amount: '',
       });
       loadCategories();
+      showSuccessToast('カテゴリを登録しました');
     } catch (error) {
-      console.error('カテゴリの登録に失敗しました', error);
+      showErrorToast(error, 'カテゴリの登録に失敗しました');
     }
   };
 
@@ -90,8 +92,9 @@ export const Categories = () => {
       try {
         await categoriesApi.delete(id);
         loadCategories();
+        showSuccessToast('カテゴリを削除しました');
       } catch (error) {
-        console.error('カテゴリの削除に失敗しました', error);
+        showErrorToast(error, 'カテゴリの削除に失敗しました');
       }
     }
   };

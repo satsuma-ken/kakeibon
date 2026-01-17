@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { budgetsApi, categoriesApi, transactionsApi } from '../services/api';
 import type { Budget, Category, Transaction } from '../types';
+import { showErrorToast, showSuccessToast } from '../utils/errorHandler';
 
 export const Budgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -35,7 +36,7 @@ export const Budgets = () => {
       setCategories(categoriesData);
       setTransactions(transactionsData);
     } catch (error) {
-      console.error('データの読み込みに失敗しました', error);
+      showErrorToast(error, 'データの読み込みに失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +57,9 @@ export const Budgets = () => {
         month: new Date().toISOString().slice(0, 7),
       });
       loadData();
+      showSuccessToast('予算を設定しました');
     } catch (error) {
-      console.error('予算の登録に失敗しました', error);
+      showErrorToast(error, '予算の登録に失敗しました');
     }
   };
 
@@ -66,8 +68,9 @@ export const Budgets = () => {
       try {
         await budgetsApi.delete(id);
         loadData();
+        showSuccessToast('予算を削除しました');
       } catch (error) {
-        console.error('予算の削除に失敗しました', error);
+        showErrorToast(error, '予算の削除に失敗しました');
       }
     }
   };

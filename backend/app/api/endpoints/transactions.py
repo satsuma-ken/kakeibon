@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
@@ -13,6 +14,86 @@ from app.models.user import User
 from app.schemas.transaction import TransactionCreate, TransactionResponse, TransactionUpdate
 
 router = APIRouter()
+
+
+def _get_verified_category(db: Session, category_id: UUID, user_id: UUID) -> Category:
+    """
+    カテゴリの存在確認と所有者検証を行う
+
+    Args:
+        db: データベースセッション
+        category_id: カテゴリID
+        user_id: ユーザーID
+
+    Returns:
+        検証済みのカテゴリ
+
+    Raises:
+        HTTPException: カテゴリが見つからない、または権限がない場合
+    """
+    category = db.query(Category).filter(Category.category_id == category_id).first()
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="カテゴリが見つかりません",
+        )
+    if category.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="このカテゴリを使用する権限がありません",
+        )
+    return category
+
+
+def _get_verified_transaction(db: Session, transaction_id: UUID, user_id: UUID, action: str = "アクセス") -> Transaction:
+    """
+    取引の存在確認と所有者検証を行う
+
+    Args:
+        db: データベースセッション
+        transaction_id: 取引ID
+        user_id: ユーザーID
+        action: エラーメッセージ用のアクション名（例: "更新", "削除"）
+
+    Returns:
+        検証済みの取引
+
+    Raises:
+        HTTPException: 取引が見つからない、または権限がない場合
+    """
+    transaction = db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="取引が見つかりません",
+        )
+    if transaction.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"この取引を{action}する権限がありません",
+        )
+    return transaction
+
+
+def _safe_commit(db: Session, error_message: str = "データベースエラーが発生しました") -> None:
+    """
+    安全にコミットを実行し、エラー時はロールバック
+
+    Args:
+        db: データベースセッション
+        error_message: エラー時のメッセージ
+
+    Raises:
+        HTTPException: コミット失敗時
+    """
+    try:
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_message,
+        ) from e
 
 
 @router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
@@ -36,18 +117,7 @@ def create_transaction(
         HTTPException: カテゴリが見つからない、または権限がない場合
     """
     # カテゴリの存在チェックと所有者確認
-    category = db.query(Category).filter(Category.category_id == transaction_data.category_id).first()
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="カテゴリが見つかりません",
-        )
-
-    if category.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="このカテゴリを使用する権限がありません",
-        )
+    _get_verified_category(db, transaction_data.category_id, current_user.user_id)
 
     new_transaction = Transaction(
         user_id=current_user.user_id,
@@ -59,7 +129,7 @@ def create_transaction(
     )
 
     db.add(new_transaction)
-    db.commit()
+    _safe_commit(db, "取引の作成に失敗しました")
     db.refresh(new_transaction)
 
     return new_transaction
@@ -130,21 +200,7 @@ def get_transaction(
     Raises:
         HTTPException: 取引が見つからない、または権限がない場合
     """
-    transaction = db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
-
-    if not transaction:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="取引が見つかりません",
-        )
-
-    # 所有者チェック
-    if transaction.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="この取引にアクセスする権限がありません",
-        )
-
+    transaction = _get_verified_transaction(db, transaction_id, current_user.user_id)
     return transaction
 
 
@@ -170,42 +226,18 @@ def update_transaction(
     Raises:
         HTTPException: 取引が見つからない、または権限がない場合
     """
-    transaction = db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
-
-    if not transaction:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="取引が見つかりません",
-        )
-
-    # 所有者チェック
-    if transaction.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="この取引を更新する権限がありません",
-        )
+    transaction = _get_verified_transaction(db, transaction_id, current_user.user_id, action="更新")
 
     # カテゴリIDが更新される場合は、カテゴリの存在チェック
     if transaction_data.category_id:
-        category = db.query(Category).filter(Category.category_id == transaction_data.category_id).first()
-        if not category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="カテゴリが見つかりません",
-            )
-
-        if category.user_id != current_user.user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="このカテゴリを使用する権限がありません",
-            )
+        _get_verified_category(db, transaction_data.category_id, current_user.user_id)
 
     # 更新処理
     update_data = transaction_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(transaction, field, value)
 
-    db.commit()
+    _safe_commit(db, "取引の更新に失敗しました")
     db.refresh(transaction)
 
     return transaction
@@ -228,20 +260,7 @@ def delete_transaction(
     Raises:
         HTTPException: 取引が見つからない、または権限がない場合
     """
-    transaction = db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
-
-    if not transaction:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="取引が見つかりません",
-        )
-
-    # 所有者チェック
-    if transaction.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="この取引を削除する権限がありません",
-        )
+    transaction = _get_verified_transaction(db, transaction_id, current_user.user_id, action="削除")
 
     db.delete(transaction)
-    db.commit()
+    _safe_commit(db, "取引の削除に失敗しました")
