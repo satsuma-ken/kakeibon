@@ -1,8 +1,11 @@
 # postgres data
 postgres_data/
 
-# projects
-projects/
+# projects 配下をすべて無視
+projects/**
+
+# ただし workspace ファイルだけは追跡する
+!projects/ws.code-workspace
 
 # high security files
 .env
