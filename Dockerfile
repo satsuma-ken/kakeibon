@@ -39,11 +39,9 @@ ENV PATH="${HOME}/.npm-global/bin:${PATH}"
 # Claude Code（ユーザー環境にインストール）
 RUN npm install -g @anthropic-ai/claude-code
 
-# uv（ユーザー環境にインストール）
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# PATH に追加
-ENV PATH="${HOME}/.local/bin:${PATH}"
+# UV ユーザ環境にインストール
+RUN pip install --no-cache-dir uv
+ENV PATH="${HOME}/.local/bin:$PATH"
 
 WORKDIR /workspace
 CMD ["/bin/bash"]

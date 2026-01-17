@@ -46,8 +46,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./projects:/workspace/projects
-      - ~/.gitconfig:/root/.gitconfig:ro  # Git設定をマウント
-      - ~/.git-credentials:/root/.git-credentials:ro  # 認証情報をマウント
+      - ~/.gitconfig:/home/dev/.gitconfig:ro  # Git設定をマウント
+      - ~/.git-credentials:/home/dev/.git-credentials:ro  # 認証情報をマウント
     ports:
       - "8000:8000"
     networks:
