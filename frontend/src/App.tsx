@@ -13,20 +13,20 @@ import { Budgets } from './pages/Budgets';
 
 function App() {
   return (
-    <AuthProvider>
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        gutter={8}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            fontSize: '14px',
-            maxWidth: '500px',
-          },
-        }}
-      />
-      <Router>
+    <Router>
+      <AuthProvider>
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          gutter={8}
+          toastOptions={{
+            duration: 3000,
+            style: {
+              fontSize: '14px',
+              maxWidth: '500px',
+            },
+          }}
+        />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -73,8 +73,8 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

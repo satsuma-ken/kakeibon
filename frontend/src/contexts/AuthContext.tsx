@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { authApi } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { authApi, AUTH_ERROR_EVENT } from '../services/api';
 import type { User, LoginRequest, RegisterRequest } from '../types';
 
 interface AuthContextType {
@@ -28,6 +29,21 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // 認証エラーイベントをリッスンしてログインページへリダイレクトする
+  useEffect(() => {
+    const handleAuthError = () => {
+      setUser(null);
+      navigate('/login');
+    };
+
+    window.addEventListener(AUTH_ERROR_EVENT, handleAuthError);
+
+    return () => {
+      window.removeEventListener(AUTH_ERROR_EVENT, handleAuthError);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     const initAuth = async () => {

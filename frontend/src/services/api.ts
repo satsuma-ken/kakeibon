@@ -1,4 +1,13 @@
 import axios from 'axios';
+
+// 認証エラー時に発火するカスタムイベント
+export const AUTH_ERROR_EVENT = 'auth:error';
+
+export const dispatchAuthError = (status: number) => {
+  window.dispatchEvent(new CustomEvent(AUTH_ERROR_EVENT, {
+    detail: { status }
+  }));
+};
 import type {
   AuthResponse,
   LoginRequest,
@@ -34,10 +43,12 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const requestUrl = error.config?.url;
 
-    // 🔴 ログイン失敗時は何もしない
-    if (status === 401 && requestUrl !== '/api/auth/login') {
+    // ログインエンドポイントでの401/403はイベントを発火しない（ログイン試行の失敗）
+    const isAuthEndpoint = requestUrl?.includes('/api/auth/');
+
+    if ((status === 401 || status === 403) && !isAuthEndpoint) {
       localStorage.removeItem('access_token');
-      window.location.href = '/login';
+      dispatchAuthError(status);
     }
     return Promise.reject(error);
   }

@@ -5,8 +5,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select
-
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
@@ -16,6 +16,57 @@ from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
 
 router = APIRouter()
+
+
+def _get_verified_category(db: Session, category_id: UUID, user_id: UUID, action: str = "アクセス") -> Category:
+    """
+    カテゴリの存在確認と所有者検証を行う
+
+    Args:
+        db: データベースセッション
+        category_id: カテゴリID
+        user_id: ユーザーID
+        action: エラーメッセージ用のアクション名
+
+    Returns:
+        検証済みのカテゴリ
+
+    Raises:
+        HTTPException: カテゴリが見つからない、または権限がない場合
+    """
+    category = db.query(Category).filter(Category.category_id == category_id).first()
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="カテゴリが見つかりません",
+        )
+    if category.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"このカテゴリを{action}する権限がありません",
+        )
+    return category
+
+
+def _safe_commit(db: Session, error_message: str = "データベースエラーが発生しました") -> None:
+    """
+    安全にコミットを実行し、エラー時はロールバック
+
+    Args:
+        db: データベースセッション
+        error_message: エラー時のメッセージ
+
+    Raises:
+        HTTPException: コミット失敗時
+    """
+    try:
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_message,
+        ) from e
 
 
 @router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
@@ -46,7 +97,7 @@ def create_category(
     )
 
     db.add(new_category)
-    db.commit()
+    _safe_commit(db, "カテゴリの作成に失敗しました")
     db.refresh(new_category)
 
     return new_category
@@ -97,21 +148,7 @@ def get_category(
     Raises:
         HTTPException: カテゴリが見つからない、または権限がない場合
     """
-    category = db.query(Category).filter(Category.category_id == category_id).first()
-
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="カテゴリが見つかりません",
-        )
-
-    # 所有者チェック
-    if category.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="このカテゴリにアクセスする権限がありません",
-        )
-
+    category = _get_verified_category(db, category_id, current_user.user_id)
     return category
 
 
@@ -137,27 +174,14 @@ def update_category(
     Raises:
         HTTPException: カテゴリが見つからない、または権限がない場合
     """
-    category = db.query(Category).filter(Category.category_id == category_id).first()
-
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="カテゴリが見つかりません",
-        )
-
-    # 所有者チェック
-    if category.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="このカテゴリを更新する権限がありません",
-        )
+    category = _get_verified_category(db, category_id, current_user.user_id, action="更新")
 
     # 更新処理
     update_data = category_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(category, field, value)
 
-    db.commit()
+    _safe_commit(db, "カテゴリの更新に失敗しました")
     db.refresh(category)
 
     return category
@@ -166,6 +190,7 @@ def update_category(
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_category(
     category_id: UUID,
+    force: bool = Query(False, description="関連取引があっても強制削除するか"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -174,29 +199,30 @@ def delete_category(
 
     Args:
         category_id: カテゴリID
+        force: 関連取引があっても強制削除するか（デフォルト: False）
         current_user: 認証済みユーザー
         db: データベースセッション
 
     Raises:
-        HTTPException: カテゴリが見つからない、または権限がない場合
+        HTTPException: カテゴリが見つからない、権限がない、または関連取引がある場合
     """
-    category = db.query(Category).filter(Category.category_id == category_id).first()
+    category = _get_verified_category(db, category_id, current_user.user_id, action="削除")
 
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="カテゴリが見つかりません",
-        )
+    # 関連する取引の存在チェック
+    transaction_count = (
+        db.query(Transaction)
+        .filter(Transaction.category_id == category_id)
+        .count()
+    )
 
-    # 所有者チェック
-    if category.user_id != current_user.user_id:
+    if transaction_count > 0 and not force:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="このカテゴリを削除する権限がありません",
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"このカテゴリには{transaction_count}件の取引が紐づいています。削除するには force=true を指定してください",
         )
 
     db.delete(category)
-    db.commit()
+    _safe_commit(db, "カテゴリの削除に失敗しました")
 
 
 @router.get("/recurring/unregistered", response_model=list[CategoryResponse])
