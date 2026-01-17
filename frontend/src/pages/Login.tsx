@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { showErrorToast } from '../utils/errorHandler';
+import { isConnectionError, showLoginErrorToast } from '../utils/errorHandler';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -21,8 +21,10 @@ export const Login = () => {
       await login({ email, password });
       navigate('/dashboard');
     } catch (err) {
-      // setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
-      showErrorToast(err, 'ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+      // 接続エラーはinterceptorで処理済み、それ以外（認証失敗）はここで表示
+      if (!isConnectionError(err)) {
+        showLoginErrorToast();
+      }
     } finally {
       setIsLoading(false);
     }

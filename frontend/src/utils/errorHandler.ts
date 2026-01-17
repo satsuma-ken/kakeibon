@@ -107,13 +107,50 @@ function isAxiosError(error: unknown): error is AxiosError {
   );
 }
 
-// トースト通知関数
-export function showErrorToast(error: unknown, customMessage?: string): void {
-  const errorInfo = parseError(error);
-  const message = customMessage || errorInfo.message;
+// 認証エラー（401/403）かどうかを判定
+export function isAuthError(error: unknown): boolean {
+  if (!isAxiosError(error)) {
+    return false;
+  }
+  const status = error.response?.status;
+  return status === 401 || status === 403;
+}
 
-  toast.error(message, {
-    duration: 4000,
+// 接続エラー（ネットワークエラーまたはサーバーエラー5xx）かどうかを判定
+export function isConnectionError(error: unknown): boolean {
+  if (!isAxiosError(error)) {
+    return false;
+  }
+  // レスポンスがない = ネットワークエラー（サーバーに到達できない）
+  if (!error.response) {
+    return true;
+  }
+  // 5xxエラー = サーバーエラー（DB接続エラーなど）
+  const status = error.response.status;
+  return status >= 500 && status < 600;
+}
+
+// エラートーストID（重複防止・dismiss用）
+const AUTH_ERROR_TOAST_ID = 'auth-error';
+const CONNECTION_ERROR_TOAST_ID = 'connection-error';
+const LOGIN_ERROR_TOAST_ID = 'login-error';
+const GENERAL_ERROR_TOAST_ID = 'general-error';
+const VALIDATION_ERROR_TOAST_ID = 'validation-error';
+
+// エラートーストをすべてクリア（クリック時などに呼び出し）
+export function dismissErrorToasts(): void {
+  toast.dismiss(AUTH_ERROR_TOAST_ID);
+  toast.dismiss(CONNECTION_ERROR_TOAST_ID);
+  toast.dismiss(LOGIN_ERROR_TOAST_ID);
+  toast.dismiss(GENERAL_ERROR_TOAST_ID);
+  toast.dismiss(VALIDATION_ERROR_TOAST_ID);
+}
+
+// 認証エラー用トースト表示（interceptorから呼び出し）
+export function showAuthErrorToast(): void {
+  toast.error(ERROR_MESSAGES[ErrorType.AUTHENTICATION], {
+    id: AUTH_ERROR_TOAST_ID,
+    duration: Infinity,
     position: 'top-center',
     style: {
       background: '#FEE2E2',
@@ -126,10 +163,75 @@ export function showErrorToast(error: unknown, customMessage?: string): void {
       secondary: '#FFFFFF',
     },
   });
+}
 
-  if (import.meta.env.DEV) {
-    console.error('[Error Handler]', errorInfo);
+// 接続エラー用トースト表示（interceptorから呼び出し）
+export function showConnectionErrorToast(): void {
+  toast.error('データへアクセスできませんでした。システム管理者にご連絡ください。', {
+    id: CONNECTION_ERROR_TOAST_ID,
+    duration: Infinity,
+    position: 'top-center',
+    style: {
+      background: '#FEE2E2',
+      border: '1px solid #FCA5A5',
+      padding: '16px',
+      color: '#991B1B',
+    },
+    iconTheme: {
+      primary: '#DC2626',
+      secondary: '#FFFFFF',
+    },
+  });
+}
+
+// ログインエラー用トースト表示
+export function showLoginErrorToast(): void {
+  toast.error('ログインに失敗しました。メールアドレスとパスワードを確認してください。', {
+    id: LOGIN_ERROR_TOAST_ID,
+    duration: Infinity,
+    position: 'top-center',
+    style: {
+      background: '#FEE2E2',
+      border: '1px solid #FCA5A5',
+      padding: '16px',
+      color: '#991B1B',
+    },
+    iconTheme: {
+      primary: '#DC2626',
+      secondary: '#FFFFFF',
+    },
+  });
+}
+
+// トースト通知関数
+export function showErrorToast(error: unknown, customMessage?: string): void {
+  // 認証エラー・接続エラーはinterceptorで一元的に処理するためスキップ
+  if (isAuthError(error)) {
+    return;
   }
+
+  if (isConnectionError(error)) {
+    return;
+  }
+
+  const errorInfo = parseError(error);
+  const message = customMessage || errorInfo.message;
+
+  toast.error(message, {
+    id: GENERAL_ERROR_TOAST_ID,
+    duration: Infinity,
+    position: 'top-center',
+    style: {
+      background: '#FEE2E2',
+      border: '1px solid #FCA5A5',
+      padding: '16px',
+      color: '#991B1B',
+    },
+    iconTheme: {
+      primary: '#DC2626',
+      secondary: '#FFFFFF',
+    },
+  });
 }
 
 export function showSuccessToast(message: string): void {
@@ -151,7 +253,8 @@ export function showSuccessToast(message: string): void {
 
 export function showValidationError(message: string): void {
   toast.error(message, {
-    duration: 4000,
+    id: VALIDATION_ERROR_TOAST_ID,
+    duration: Infinity,
     position: 'top-center',
     style: {
       background: '#FEF3C7',

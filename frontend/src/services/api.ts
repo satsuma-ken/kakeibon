@@ -1,12 +1,20 @@
 import axios from 'axios';
+import { showAuthErrorToast, showConnectionErrorToast, isConnectionError } from '../utils/errorHandler';
 
 // 認証エラー時に発火するカスタムイベント
 export const AUTH_ERROR_EVENT = 'auth:error';
+
+// 接続エラー時に発火するカスタムイベント（DB接続不可、サーバーダウンなど）
+export const CONNECTION_ERROR_EVENT = 'connection:error';
 
 export const dispatchAuthError = (status: number) => {
   window.dispatchEvent(new CustomEvent(AUTH_ERROR_EVENT, {
     detail: { status }
   }));
+};
+
+export const dispatchConnectionError = () => {
+  window.dispatchEvent(new CustomEvent(CONNECTION_ERROR_EVENT));
 };
 import type {
   AuthResponse,
@@ -43,13 +51,26 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const requestUrl = error.config?.url;
 
-    // ログインエンドポイントでの401/403はイベントを発火しない（ログイン試行の失敗）
+    // ログインエンドポイントでのエラーはイベントを発火しない（ログイン試行の失敗）
     const isAuthEndpoint = requestUrl?.includes('/api/auth/');
 
     if ((status === 401 || status === 403) && !isAuthEndpoint) {
       localStorage.removeItem('access_token');
+      showAuthErrorToast();
       dispatchAuthError(status);
     }
+
+    // 接続エラー（ネットワークエラー、5xxサーバーエラー）の処理
+    // 認証エンドポイントでもトーストは表示（システム障害はユーザーに通知すべき）
+    if (isConnectionError(error)) {
+      showConnectionErrorToast();
+      // 認証エンドポイント以外の場合のみログアウト処理とリダイレクト
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('access_token');
+        dispatchConnectionError();
+      }
+    }
+
     return Promise.reject(error);
   }
 );

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
+import { dismissErrorToasts } from './utils/errorHandler';
 import { Layout } from './components/Layout';
 import { PrivateRoute } from './components/PrivateRoute';
 import { Home } from './pages/Home';
@@ -12,6 +14,18 @@ import { Categories } from './pages/Categories';
 import { Budgets } from './pages/Budgets';
 
 function App() {
+  // 画面クリック時にエラートーストをクリア
+  useEffect(() => {
+    const handleClick = () => {
+      dismissErrorToasts();
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => {
+      document.removeEventListener('click', handleClick);
+    };
+  }, []);
+
   return (
     <Router>
       <AuthProvider>
