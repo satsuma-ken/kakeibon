@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { transactionsApi, categoriesApi } from '../services/api';
 import type { Transaction, Category, TransactionType } from '../types';
 import { RecurringCategoryBanner } from '../components/RecurringCategoryBanner';
+import { showErrorToast, showSuccessToast } from '../utils/errorHandler';
 
 export const Dashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -36,8 +37,8 @@ export const Dashboard = () => {
       setTransactions(transactionsData);
       setCategories(categoriesData);
     } catch (error) {
-      console.error('データの読み込みに失敗しました', error);
-    } finally {
+      showErrorToast(error, 'データの読み込みに失敗しました');
+    } finally{
       setIsLoading(false);
     }
   };
@@ -70,8 +71,9 @@ export const Dashboard = () => {
       });
       loadData(); // ダッシュボードをリロード
       setBannerKey(prev => prev + 1); // バナーをリフレッシュ
+      showSuccessToast('取引を登録しました');
     } catch (error) {
-      console.error('取引の作成に失敗しました', error);
+      showErrorToast(error, '取引の作成に失敗しました');
     }
   };
 
