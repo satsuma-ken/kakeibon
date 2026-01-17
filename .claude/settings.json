@@ -30,7 +30,7 @@
     ],
     "ask": [
       "Bash(git push:*)",
-      "Bash(git push:* --force)",
+      "Bash(git push * --force)",
       "Bash(alembic downgrade:*)",
       "Bash(docker:*)",
       "Bash(docker-compose:*)"
