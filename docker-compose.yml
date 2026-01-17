@@ -1,0 +1,62 @@
+networks:
+  dev-network:
+    name: dev-network
+    driver: bridge
+
+services:
+  # PostgreSQL (開発専用 - 複数アプリで共有)
+  postgres:
+    image: postgres:15
+    container_name: dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: postgres
+    volumes:
+      - ${POSTGRES_DATA_DIR:-./postgres_data}:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Adminer (DB管理ツール)
+  adminer:
+    image: adminer
+    container_name: dev-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - dev-network
+    depends_on:
+      - postgres
+
+  # Python開発環境（共通）
+  python-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python-dev
+    restart: unless-stopped
+    volumes:
+      - ./projects:/workspace/projects
+      - ~/.gitconfig:/root/.gitconfig:ro  # Git設定をマウント
+      - ~/.git-credentials:/root/.git-credentials:ro  # 認証情報をマウント
+    ports:
+      - "8000:8000"
+    networks:
+      - dev-network
+    depends_on:
+      - postgres
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+    driver: local
