@@ -1,5 +1,8 @@
 # postgres data
-/postgres_data/
+postgres_data/
+
+# projects
+projects/
 
 # high security files
 .env
