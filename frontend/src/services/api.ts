@@ -31,7 +31,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const requestUrl = error.config?.url;
+
+    // 🔴 ログイン失敗時は何もしない
+    if (status === 401 && requestUrl !== '/api/auth/login') {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
     }

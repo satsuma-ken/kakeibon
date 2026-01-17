@@ -5,6 +5,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
@@ -248,7 +250,9 @@ def get_unregistered_recurring_categories(
         .filter(
             Category.user_id == current_user.user_id,
             Category.is_recurring.is_(True),
-            ~Category.category_id.in_(registered_category_ids)
+            ~Category.category_id.in_(
+                select(registered_category_ids)
+            )
         )
         .all()
     )
