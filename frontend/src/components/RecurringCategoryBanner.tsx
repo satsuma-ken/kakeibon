@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { categoriesApi } from '../services/api';
 import type { Category } from '../types';
+import { showErrorToast } from '../utils/errorHandler';
 
 interface RecurringCategoryBannerProps {
   onRegister: (category: Category) => void;
@@ -10,17 +11,21 @@ export const RecurringCategoryBanner = ({ onRegister }: RecurringCategoryBannerP
   const [unregisteredCategories, setUnregisteredCategories] = useState<Category[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadUnregisteredCategories();
   }, []);
 
   const loadUnregisteredCategories = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const data = await categoriesApi.getUnregisteredRecurring();
       setUnregisteredCategories(data);
-    } catch (error) {
-      console.error('未登録固定費の取得に失敗しました', error);
+    } catch (err) {
+      setError('未登録固定費の取得に失敗しました');
+      showErrorToast(err, '未登録固定費の取得に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -30,7 +35,35 @@ export const RecurringCategoryBanner = ({ onRegister }: RecurringCategoryBannerP
     setIsVisible(false);
   };
 
-  if (isLoading || !isVisible || unregisteredCategories.length === 0) {
+  if (isLoading) {
+    return null;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 text-red-400 mr-3" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm text-red-700 font-medium">{error}</p>
+          </div>
+          <button
+            onClick={loadUnregisteredCategories}
+            className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
+          >
+            <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            再試行
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isVisible || unregisteredCategories.length === 0) {
     return null;
   }
 

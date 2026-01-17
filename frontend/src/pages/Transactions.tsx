@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { transactionsApi, categoriesApi } from '../services/api';
 import type { Transaction, Category, TransactionType } from '../types';
+import { showErrorToast, showSuccessToast } from '../utils/errorHandler';
 
 export const Transactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -28,7 +29,7 @@ export const Transactions = () => {
       setTransactions(transactionsData);
       setCategories(categoriesData);
     } catch (error) {
-      console.error('データの読み込みに失敗しました', error);
+      showErrorToast(error, 'データの読み込みに失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -50,8 +51,9 @@ export const Transactions = () => {
         memo: '',
       });
       loadData();
+      showSuccessToast('取引を登録しました');
     } catch (error) {
-      console.error('取引の登録に失敗しました', error);
+      showErrorToast(error, '取引の登録に失敗しました');
     }
   };
 
@@ -60,8 +62,9 @@ export const Transactions = () => {
       try {
         await transactionsApi.delete(id);
         loadData();
+        showSuccessToast('取引を削除しました');
       } catch (error) {
-        console.error('取引の削除に失敗しました', error);
+        showErrorToast(error, '取引の削除に失敗しました');
       }
     }
   };
