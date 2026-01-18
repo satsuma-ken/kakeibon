@@ -66,7 +66,7 @@ git clone https://github.com/satsuma-ken/env-web-python.git $ENV_DIR
 ```shell
 PJ_DIR=~/dev/web/projects
 cd $PJ_DIR
-REPO=https://github.com/satsuma-ken/kakeibon.git # REPOには任意のリポジトリを入力する
+REPO=https://github.com/satsuma-ken/kakeibon.git # REPOには任意のリポジトリを入力する  
 git clone $REPO
 ```
 
