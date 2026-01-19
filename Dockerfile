@@ -5,10 +5,7 @@ ARG UID=1000
 ARG GID=1000
 
 # システムパッケージ（localesを追加）
-RUN apt-get update && apt-get install -y \
-    git vim curl wget gh build-essential \
-    locales \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y locales
 
 # 日本語ロケールを生成
 RUN sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen && \
@@ -18,6 +15,11 @@ RUN sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen && \
 ENV LANG=ja_JP.UTF-8
 ENV LC_ALL=ja_JP.UTF-8
 ENV LANGUAGE=ja_JP:ja
+
+# システムパッケージ（localesを追加）
+RUN apt-get update && apt-get install -y \
+    git vim curl wget gh build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \

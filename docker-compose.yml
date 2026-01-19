@@ -47,7 +47,7 @@ services:
     volumes:
       - ./projects:/workspace/projects
       - ~/.gitconfig:/home/dev/.gitconfig:ro  # Git設定をマウント
-      - ~/.git-credentials:/home/dev/.git-credentials:ro  # 認証情報をマウント
+      # - ~/.git-credentials:/home/dev/.git-credentials:ro  # 認証情報のみマウントしない
     ports:
       - "8000:8000"
     networks:
