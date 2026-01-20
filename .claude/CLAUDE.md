@@ -117,10 +117,25 @@ frontend/
 | エージェント | 使用タイミング | 起動方法 |
 |------------|-------------|---------|
 | **code-review-advisor** | PRレビュー、包括的なコードレビュー依頼 | `Task` tool, `subagent_type: "code-review-advisor"` |
-| **architecture-advisor** | アーキテクチャ規約チェック、実装方針の相談、設計レビュー | `Task` tool, `subagent_type: "architecture-advisor"` |
+| **architecture-advisor** | 設計資料の作成・更新（ユーザーが明示的に指示した時のみ） | `Task` tool, `subagent_type: "architecture-advisor"` |
 | **security-advisor** | セキュリティ専門レビュー（認証、SQL、XSS、データ保護） | `Task` tool, `subagent_type: "security-advisor"` |
 | **Explore** | コードベース探索、複数ファイルの検索、構造理解 | `Task` tool, `subagent_type: "Explore"` |
 | **Plan** | 実装計画の立案、アーキテクチャ設計 | `Task` tool, `subagent_type: "Plan"` |
+
+### architecture-advisorの特別な扱い
+
+**architecture-advisor**は、他のサブエージェントとは異なる使い方をします：
+
+- **用途**: `doc/01_設計資料/`内の設計資料（アーキテクチャ図、システム設計書）の作成・更新
+- **呼び出し方**: ユーザーが明示的に「architecture-advisorを使って設計資料を作成/更新して」と指示した時のみ使用
+- **自動実行禁止**:
+  - メインエージェントから勝手に呼び出さない
+  - 「実装方針を提案して」「アーキテクチャ規約に従っているか確認して」という要求では呼び出さない
+- **日常的な開発**:
+  - アーキテクチャの確認が必要な時は`doc/01_設計資料/ARCHITECTURE.md`を参照
+  - コーディング規約の確認が必要な時は`.claude/CLAUDE.md`または`.claude/rules/`を参照
+
+**理由**: 設計資料は一度作成すれば参照できるため、毎回エージェントを呼び出す必要はありません。設計資料を最新に保つための更新時のみ使用します。
 
 ### タスク別のエージェント選択ガイド
 
@@ -129,13 +144,14 @@ frontend/
 - **「PRをレビューして」**: → `code-review-advisor`
 - **「コードをレビューして」**: → `code-review-advisor`
 - **「セキュリティチェックして」**: → `security-advisor`
-- **「アーキテクチャ規約に従っているか確認して」**: → `architecture-advisor`
 
 #### 実装・設計関連
 
 - **「新機能を実装したい」**: → `Plan` で計画立案 → 実装
-- **「実装方針を提案して」**: → `architecture-advisor`
-- **「どこに実装すべきか」**: → `Explore` でコードベース探索 → `architecture-advisor`
+- **「実装方針を提案して」**: → `Explore` でコードベース探索 → `doc/01_設計資料/`を参照して提案
+- **「どこに実装すべきか」**: → `Explore` でコードベース探索 → `doc/01_設計資料/`を参照
+- **「アーキテクチャ規約に従っているか確認して」**: → `doc/01_設計資料/ARCHITECTURE.md`と`.claude/CLAUDE.md`を読んで確認
+- **「設計資料を作成/更新して」**: → `architecture-advisor`（ユーザーの明示的な指示時のみ）
 
 #### 調査・探索関連
 
@@ -175,7 +191,7 @@ frontend/
 
 ✅ 正しい:
 ユーザー: 「CSVエクスポート機能を追加して」
-メインエージェント: [Planエージェントで計画立案] → [architecture-advisorで設計確認] → [実装]
+メインエージェント: [Planエージェントで計画立案] → [doc/01_設計資料/を参照して設計確認] → [実装]
 ```
 
 #### 例3: セキュリティ確認
@@ -190,13 +206,26 @@ frontend/
 メインエージェント: [Taskツールでsecurity-advisorを起動]
 ```
 
+#### 例4: アーキテクチャ規約の確認
+
+```
+❌ 間違い:
+ユーザー: 「この実装がアーキテクチャ規約に従っているか確認して」
+メインエージェント: [Taskツールでarchitecture-advisorを起動]
+
+✅ 正しい:
+ユーザー: 「この実装がアーキテクチャ規約に従っているか確認して」
+メインエージェント: [doc/01_設計資料/ARCHITECTURE.mdと.claude/CLAUDE.mdを読んで規約を確認] → [実装コードと比較してフィードバック]
+```
+
 ### 複数エージェントの連携
 
 サブエージェント同士も連携できます：
 
 - `code-review-advisor` → `security-advisor`（セキュリティ面の詳細確認）
-- `code-review-advisor` → `architecture-advisor`（アーキテクチャ規約の確認）
 - `Explore` → `Plan`（探索結果を元に計画立案）
+
+**注意**: `architecture-advisor`は設計資料の作成・更新専用のため、他のエージェントから自動的に呼び出すことはしません。代わりに`doc/01_設計資料/`を参照します。
 
 ### 判断基準
 
