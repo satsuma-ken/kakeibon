@@ -40,8 +40,10 @@ Password: password
 
 現在の設定（`backend/app/core/config.py`）:
 ```python
-BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 ```
+
+注: React開発サーバーのデフォルトポート5173のみ許可しています。
 
 ⚠️ **本番環境では**:
 - 実際のフロントエンドのドメインのみを許可
@@ -139,16 +141,19 @@ class TransactionType(str, enum.Enum):
 
 現在`datetime.utcnow()`を使用していますが、Python 3.12以降では非推奨です。
 
-**推奨**: `datetime.now(timezone.utc)`に変更を検討
-
+**現在の実装**:
 ```python
-# 現在の実装
 created_at = Column(DateTime, default=datetime.utcnow)
+```
 
-# 推奨される実装
+**将来的な推奨実装**:
+```python
 from datetime import timezone
 created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 ```
+
+注: Python 3.11を使用しているため、現状のままでも問題ありませんが、
+Python 3.12以降にアップグレードする際は修正が必要です。
 
 ## マイグレーション関連
 
@@ -310,6 +315,7 @@ def create_user(user: UserCreate, db: Session) -> User:
 
 適切な例外処理を実装してください。
 
+**バックエンド**:
 ```python
 from fastapi import HTTPException
 
@@ -320,6 +326,20 @@ try:
 except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 ```
+
+**フロントエンド（実装済み）**:
+```typescript
+// utils/errorHandler.ts を使用
+import { handleApiError } from '@/utils/errorHandler';
+
+try {
+  const response = await api.post('/api/transactions', data);
+} catch (error) {
+  handleApiError(error);  // react-hot-toastで通知
+}
+```
+
+現在の実装では、すべてのエラーは `react-hot-toast` で画面上部に通知されます。
 
 ## テスト関連
 

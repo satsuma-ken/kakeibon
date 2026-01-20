@@ -90,6 +90,14 @@ cd frontend
 npm install
 ```
 
+**インストールされる主要なパッケージ**:
+- `react` (19.2.0) - UIライブラリ
+- `react-router-dom` (7.11.0) - ルーティング
+- `axios` (1.13.2) - HTTP通信
+- `react-hot-toast` (2.6.0) - 通知UI
+- `tailwindcss` (4.1.18) - CSSフレームワーク
+- `vite` (7.2.4) - ビルドツール
+
 ### 7. データベースマイグレーション
 
 データベーステーブルを作成します：
@@ -146,9 +154,36 @@ npm run dev
 すべてのサービスが起動したら、以下のURLにアクセスできます：
 
 - **フロントエンド**: http://localhost:5173
-- **バックエンドAPI Swagger UI**: http://localhost:8000/docs
-- **バックエンドAPI ReDoc**: http://localhost:8000/redoc
-- **ヘルスチェック**: http://localhost:8000/health
+  - ホームページ: `/`
+  - ログイン: `/login`
+  - ユーザー登録: `/register`
+  - ダッシュボード: `/dashboard` (認証必須)
+  - 取引管理: `/transactions` (認証必須)
+  - カテゴリ管理: `/categories` (認証必須)
+  - 予算管理: `/budgets` (認証必須)
+
+- **バックエンドAPI**:
+  - Swagger UI: http://localhost:8000/docs
+  - ReDoc: http://localhost:8000/redoc
+  - ヘルスチェック: http://localhost:8000/health
+  - APIベースURL: http://localhost:8000/api
+
+### 10. 初回ログイン
+
+1. ブラウザで http://localhost:5173 にアクセス
+2. 「Register」ボタンをクリック
+3. 新規ユーザーを作成:
+   - Email: `test@example.com`
+   - Name: `Test User`
+   - Password: `password123`
+4. ログイン後、ダッシュボードが表示されます
+
+**初期状態では**:
+- カテゴリが0件
+- 取引が0件
+- 予算が0件
+
+まずカテゴリを作成してから、取引や予算を登録してください。
 
 ## 日常的な開発フロー
 
@@ -217,7 +252,7 @@ uv run alembic upgrade head
 2. マイグレーションファイルを自動生成
 
 ```bash
-cd /usr/src/projects/kakeibon/backend
+cd /workspace/projects/kakeibon/backend
 uv run alembic revision --autogenerate -m "変更内容の説明"
 ```
 

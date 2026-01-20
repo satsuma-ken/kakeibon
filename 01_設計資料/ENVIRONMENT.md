@@ -30,12 +30,20 @@
 - **データベース名**: kakeibon
 - **ポート**: 5432
 
-### Webフレームワーク
+### バックエンド（FastAPI）
 - **フレームワーク**: FastAPI 0.109.0
 - **サーバー**: Uvicorn 0.27.0
 - **ポート**: 8000
 
+### フロントエンド（React + Vite）
+- **Reactバージョン**: 19.2.0
+- **ビルドツール**: Vite 7.2.4
+- **TypeScript**: 5.9.3
+- **ポート**: 5173
+
 ## 主要な依存関係
+
+### バックエンド（pyproject.toml）
 
 ```toml
 dependencies = [
@@ -44,12 +52,38 @@ dependencies = [
     "sqlalchemy==2.0.25",
     "psycopg2-binary==2.9.9",
     "alembic==1.13.1",
-    "pydantic==2.5.3",
+    "pydantic[email]==2.5.3",
     "pydantic-settings==2.1.0",
     "python-jose[cryptography]==3.3.0",
     "passlib[bcrypt]==1.7.4",
     "python-multipart==0.0.6",
+    "email-validator>=2.3.0",
 ]
+```
+
+### フロントエンド（package.json）
+
+```json
+{
+  "dependencies": {
+    "axios": "^1.13.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.11.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.23",
+    "eslint": "^9.39.1",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4"
+  }
+}
 ```
 
 ## ディレクトリ構成
@@ -72,21 +106,37 @@ kakeibon/
 ├── frontend/                  # フロントエンドアプリケーション
 │   ├── src/
 │   │   ├── main.tsx          # エントリーポイント
-│   │   ├── App.tsx           # ルートコンポーネント
+│   │   ├── App.tsx           # ルートコンポーネント + ルーティング
 │   │   ├── pages/            # ページコンポーネント
+│   │   │   ├── Home.tsx     # ランディングページ
+│   │   │   ├── Login.tsx    # ログインページ
+│   │   │   ├── Register.tsx # ユーザー登録ページ
+│   │   │   ├── Dashboard.tsx # ダッシュボード
+│   │   │   ├── Transactions.tsx # 取引管理
+│   │   │   ├── Categories.tsx # カテゴリ管理
+│   │   │   └── Budgets.tsx  # 予算管理
 │   │   ├── components/       # 共通コンポーネント
+│   │   │   ├── Layout.tsx   # レイアウトコンポーネント
+│   │   │   ├── PrivateRoute.tsx # 認証ルート
+│   │   │   └── RecurringCategoryBanner.tsx # バナー
 │   │   ├── contexts/         # React Context
+│   │   │   └── AuthContext.tsx # 認証状態管理
 │   │   ├── services/         # API通信
-│   │   └── types/            # TypeScript型定義
+│   │   │   └── api.ts       # Axios Client + Interceptors
+│   │   ├── types/            # TypeScript型定義
+│   │   │   └── index.ts     # 型定義集約
+│   │   ├── utils/            # ユーティリティ関数
+│   │   │   └── errorHandler.ts # エラーハンドリング
+│   │   └── assets/           # 静的ファイル
 │   ├── package.json          # Node.js依存関係
 │   ├── .env                  # 環境変数（gitignore対象）
 │   └── .env.example          # 環境変数サンプル
-├── doc/                       # ドキュメント
-│   ├── ARCHITECTURE.md        # アーキテクチャ
-│   ├── ENVIRONMENT.md         # 環境情報（このファイル）
-│   ├── SETUP.md              # セットアップ手順
-│   ├── NOTES.md              # 注意事項
-│   └── prompts/              # プロンプト・仕様書
+├── doc/                       # ドキュメント（git worktree管理）
+│   └── 01_設計資料/
+│       ├── ARCHITECTURE.md        # アーキテクチャ設計書
+│       ├── ENVIRONMENT.md         # 環境情報（このファイル）
+│       ├── SETUP.md              # セットアップ手順書
+│       └── NOTES.md              # 注意事項
 ├── pyproject.toml             # プロジェクト設定（バックエンド）
 ├── .python-version            # Pythonバージョン指定
 └── README.md                  # プロジェクト概要
