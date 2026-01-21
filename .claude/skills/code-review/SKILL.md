@@ -7,6 +7,18 @@ description: Kakeibonプロジェクトのコードを包括的にレビュー�
 
 このスキルは、Kakeibonプロジェクト（家計簿Webアプリ）のコード全体を包括的にレビューします。
 
+## 前提条件（必須）
+
+**レビュー開始前に、以下の設計資料を必ず読んでください：**
+
+1. `doc/01_設計資料/ARCHITECTURE.md` - システム全体構成、デザインパターン、コーディング規約
+2. `doc/01_設計資料/IMPLEMENTATION_STATUS.md` - 実装状況、技術スタック、ディレクトリ構成
+
+これにより：
+- プロジェクト全体のアーキテクチャを理解した上でレビューできます
+- 実装済み/未実装機能を把握した上で適切なフィードバックができます
+- コーディング規約やデザインパターンに沿ったレビューができます
+
 ## レビュー対象
 
 - **バックエンド**: FastAPI + SQLAlchemy + PostgreSQL
@@ -47,16 +59,33 @@ description: Kakeibonプロジェクトのコードを包括的にレビュー�
 
 ### 3. アーキテクチャの一貫性
 
-#### バックエンド
-- [ ] ディレクトリ構造が規約に従っているか
-- [ ] 適切な層分離（モデル、スキーマ、エンドポイント）
-- [ ] Pydanticによるバリデーション
+**参照: `doc/01_設計資料/ARCHITECTURE.md` - デザインパターン、コーディング規約セクション**
+
+#### バックエンド（レイヤードアーキテクチャ）
+- [ ] ディレクトリ構造が規約に従っているか（`api/endpoints/`, `core/`, `models/`, `schemas/`）
+- [ ] 適切な層分離:
+  - API Layer（endpoints/）→ リクエスト/レスポンス処理
+  - Schema Layer（schemas/）→ Pydanticバリデーション
+  - Business Logic（endpoints/）→ CRUD操作、認証チェック
+  - Data Access Layer（models/）→ SQLAlchemy ORM
+- [ ] Dependency Injection: FastAPIの`Depends()`でDBセッションや認証情報を注入
+- [ ] Schema Pattern: Create/Update/Responseスキーマを分離
 - [ ] 非同期処理の適切な使用（async/await）
 
-#### フロントエンド
-- [ ] ディレクトリ構造が規約に従っているか
+#### フロントエンド（Presentational/Container Pattern）
+- [ ] ディレクトリ構造が規約に従っているか（`pages/`, `components/`, `contexts/`, `services/`, `types/`, `utils/`）
+- [ ] Pages（Container Components）: ビジネスロジック、状態管理
+- [ ] Components（Presentational Components）: UIレンダリング、プロップスベース
+- [ ] Context API Pattern: AuthContextでグローバル状態管理
+- [ ] Service Layer Pattern: api.tsでAPI通信を抽象化
 - [ ] Props型定義の適切な使用
 - [ ] 再利用可能なコンポーネントの適切な抽象化
+
+#### API設計（RESTful）
+- [ ] リソースは複数形（`/categories`）
+- [ ] 動詞を使わない（`GET /getCategories` ❌）
+- [ ] 適切なHTTPメソッド（GET, POST, PUT, DELETE）
+- [ ] 階層構造は3階層まで
 
 ### 4. エラーハンドリング
 
@@ -130,7 +159,9 @@ description: Kakeibonプロジェクトのコードを包括的にレビュー�
 
 ## 注意事項
 
+- **設計資料を必ず参照**: レビュー前に`doc/01_設計資料/ARCHITECTURE.md`と`IMPLEMENTATION_STATUS.md`を読むこと
 - レビューは建設的で、具体的な改善案を含めること
-- プロジェクトの規約（.claude/CLAUDE.md, .claude/rules/defaults.md）に基づいて評価
+- プロジェクトの規約（.claude/CLAUDE.md, .claude/rules/defaults.md, doc/01_設計資料/）に基づいて評価
+- アーキテクチャ逸脱は明確に指摘し、設計資料の該当セクションを参照
 - セキュリティ問題は最優先で指摘
 - 過度なリファクタリングは推奨しない（要求された変更のみ）

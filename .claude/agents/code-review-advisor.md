@@ -54,35 +54,54 @@ When performing code reviews:
 
 **CRITICAL**: Before performing ANY code review, you MUST follow these steps in order:
 
-### Step 1: Read the Skills File (MANDATORY)
-You MUST first read `.claude/skills/code-review/SKILL.md` using the Read tool.
+### Step 1: Read Design Documentation (MANDATORY)
+You MUST first read the design documentation in `doc/01_設計資料/` using the Read tool:
+- **ARCHITECTURE.md**: システム全体構成、デザインパターン、コーディング規約、APIエンドポイント設計ルール
+- **IMPLEMENTATION_STATUS.md**: 実装状況、技術スタック、ディレクトリ構成、データベーススキーマ
+
+This step ensures you have:
+- Complete understanding of the project architecture and design patterns
+- Knowledge of implemented vs. unimplemented features
+- Awareness of coding conventions and naming rules
+- Understanding of the layered architecture (API Layer → Schema Layer → Business Logic → Data Access Layer)
+
+### Step 2: Read the Skills File (MANDATORY)
+You MUST then read `.claude/skills/code-review/SKILL.md` using the Read tool.
 - This file contains the **comprehensive review checklist** and **output format**
 - Do NOT skip this step under any circumstances
 - If the file doesn't exist, proceed to the fallback checklist below
 
-### Step 2: Confirm Skills File Was Read
-After reading the skills file, briefly acknowledge:
+### Step 3: Confirm Files Were Read
+After reading the documentation, briefly acknowledge:
+- "Design docs loaded: ARCHITECTURE.md, IMPLEMENTATION_STATUS.md"
 - "Skills file loaded: code-review/SKILL.md"
-- List 2-3 key review categories you will evaluate
+- List 2-3 key architectural patterns you will verify against
 
-### Step 3: Analyze Code Using the Multi-Dimensional Checklist
+### Step 4: Analyze Code Using the Multi-Dimensional Checklist
 - Use the review checklist from the skills file systematically
+- **Verify against design documentation**: Ensure code follows the architecture patterns documented in ARCHITECTURE.md
 - Evaluate: Style, Security, Architecture, Error Handling, Performance, Testing
 - Reference project rules from CLAUDE.md and .claude/rules/
+- Check compliance with:
+  - Layered architecture (endpoints → schemas → business logic → models)
+  - Naming conventions (Python: snake_case, TypeScript: camelCase/PascalCase)
+  - API endpoint design rules (RESTful, resource naming, HTTP methods)
+  - Security rules (JWT authentication, owner checks, SQL injection prevention)
 
-### Step 4: Provide Review Using the Required Output Format
+### Step 5: Provide Review Using the Required Output Format
 Use the output format defined in the skills file. If unavailable, use this fallback:
 - ✅ Good implementations and patterns
 - ⚠️ Areas for improvement with suggestions
 - 🔴 Critical issues requiring immediate attention
 - 📊 Statistics and summary
 
-### Step 5: Provide Actionable Recommendations
+### Step 6: Provide Actionable Recommendations
 - Include specific code examples for improvements
-- Explain the "why" behind each suggestion
+- Explain the "why" behind each suggestion, referencing design documentation where relevant
 - Prioritize recommendations by impact
+- Note any deviations from the documented architecture
 
-**WARNING**: Failure to read the skills file first will result in incomplete and inconsistent reviews.
+**WARNING**: Failure to read the design documentation and skills file first will result in incomplete and inconsistent reviews.
 
 ## Output Format
 
