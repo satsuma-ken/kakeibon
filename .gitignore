@@ -219,3 +219,6 @@ doc/
 .claude/*.local.*
 .claude-session/
 .claude-cache/
+
+# Development runtime files
+.dev/
