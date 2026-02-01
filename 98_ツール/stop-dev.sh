@@ -13,7 +13,7 @@ set -euo pipefail
 # ============================================================================
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 readonly DEV_DIR="${PROJECT_ROOT}/.dev"
 
 readonly BACKEND_PID_FILE="${DEV_DIR}/backend.pid"

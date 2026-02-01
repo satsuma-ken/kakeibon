@@ -13,7 +13,7 @@ set -euo pipefail
 # ============================================================================
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 readonly DEV_DIR="${PROJECT_ROOT}/.dev"
 readonly BACKEND_DIR="${PROJECT_ROOT}/backend"
 readonly FRONTEND_DIR="${PROJECT_ROOT}/frontend"
@@ -319,7 +319,7 @@ log_info "Frontend: http://localhost:${FRONTEND_PORT}"
 log_info "API Docs: http://localhost:${BACKEND_PORT}/docs"
 echo ""
 log_info "Press Ctrl+C to stop both servers"
-log_info "Or run 'doc/stop-dev.sh' from another terminal"
+log_info "Or run 'doc/98_ツール/stop-dev.sh' from another terminal"
 echo ""
 log_info "View logs:"
 log_info "  Backend:  tail -f ${BACKEND_LOG_FILE}"
