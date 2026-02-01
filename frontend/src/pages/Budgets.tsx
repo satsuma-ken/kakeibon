@@ -3,6 +3,17 @@ import { budgetsApi, categoriesApi, transactionsApi } from '../services/api';
 import type { Budget, Category, Transaction } from '../types';
 import { showErrorToast, showSuccessToast } from '../utils/errorHandler';
 
+/**
+ * 指定された年月の最終日を計算
+ * @param yearMonth - "YYYY-MM" 形式の年月文字列
+ * @returns "YYYY-MM-DD" 形式の最終日
+ */
+const getLastDayOfMonth = (yearMonth: string): string => {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
+};
+
 export const Budgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -29,7 +40,7 @@ export const Budgets = () => {
         categoriesApi.getAll(),
         transactionsApi.getAll({
           start_date: `${selectedMonth}-01`,
-          end_date: `${selectedMonth}-31`,
+          end_date: getLastDayOfMonth(selectedMonth),
         }),
       ]);
       setBudgets(budgetsData);

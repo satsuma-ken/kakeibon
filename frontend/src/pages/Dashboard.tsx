@@ -4,6 +4,17 @@ import type { Transaction, Category, TransactionType } from '../types';
 import { RecurringCategoryBanner } from '../components/RecurringCategoryBanner';
 import { showErrorToast, showSuccessToast } from '../utils/errorHandler';
 
+/**
+ * 指定された年月の最終日を計算
+ * @param yearMonth - "YYYY-MM" 形式の年月文字列
+ * @returns "YYYY-MM-DD" 形式の最終日
+ */
+const getLastDayOfMonth = (yearMonth: string): string => {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
+};
+
 export const Dashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -30,7 +41,7 @@ export const Dashboard = () => {
       const [transactionsData, categoriesData] = await Promise.all([
         transactionsApi.getAll({
           start_date: `${selectedMonth}-01`,
-          end_date: `${selectedMonth}-31`,
+          end_date: getLastDayOfMonth(selectedMonth),
         }),
         categoriesApi.getAll(),
       ]);
